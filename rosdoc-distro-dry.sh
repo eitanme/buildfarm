@@ -1,4 +1,11 @@
 #TODO: this should be converted to use the new dispatch-style chroot
+
+#TODO: this does not work with catkin-ized stacks because there is no
+#source in them.  Possibilities include using "apt-get src", but that
+#would not help with packages like tf, which require built source.  It
+#may be the case that catkin-ized stacks must manually generate and
+#push docs in the future.
+
 cat > $WORKSPACE/script.sh <<DELIM
 #!/usr/bin/env bash
 set -o errexit
@@ -12,7 +19,8 @@ echo "installing index via rosinstall"
 sudo easy_install -U rosinstall
 export ROS_LANG_DISABLE=roseus:rosoct:rosjava
 sudo apt-get install ros-$DISTRO-ros-comm -y
-rosinstall /tmp/rosdoc_checkout http://code.ros.org/svn/ros/stacks/rosorg/trunk/rosdoc_rosorg/index/repos-$DISTRO.rosinstall --rosdep-yes  --continue-on-error
+# 8 parallel checkouts
+rosinstall -j 8 /tmp/rosdoc_checkout http://code.ros.org/svn/ros/stacks/rosorg/trunk/rosdoc_rosorg/index/repos-$DISTRO.rosinstall --rosdep-yes  --continue-on-error
 cat /tmp/rosdoc_checkout/setup.bash
 cat /tmp/rosdoc_checkout/setup.sh
 . /tmp/rosdoc_checkout/setup.sh
