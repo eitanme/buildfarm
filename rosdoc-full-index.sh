@@ -8,14 +8,10 @@ sudo apt-get install -y python-software-properties
 sudo add-apt-repository ppa:bzr/ppa
 sudo apt-get update
 
-sudo apt-get install python-setuptools mercurial bzr git-core doxygen python-epydoc -y python-svn
+sudo apt-get install python-setuptools mercurial bzr git-core doxygen python-epydoc python-svn -y 
+sudo easy_install -U vcstools roskg rosinstall sphinx
 
-echo "installing vcstools"
-sudo easy_install -U vcstools
-echo "installing index via rosinstall"
-sudo easy_install -U rosinstall
 export ROS_LANG_DISABLE=roseus:rosoct:rosjava
-
 
 # use ros-electric for indexer
 sudo apt-get install ros-electric-documentation -y
@@ -26,17 +22,12 @@ chmod +x /tmp/generate_index.py
 /tmp/generate_index.py /tmp/repos.rosinstall
 cat /tmp/repos.rosinstall
 
-rosinstall /tmp/rosdoc_checkout /tmp/repos.rosinstall --rosdep-yes  --continue-on-error
-echo "rosinstall complete, now sourcing setup.sh"
+rosinstall -j8 /tmp/rosdoc_checkout /tmp/repos.rosinstall --rosdep-yes  --continue-on-error
 . /tmp/rosdoc_checkout/setup.sh
-echo "sourced setup.sh"
 
-echo "ROS_PACKAGE_PATH" $ROS_PACKAGE_PATH
-echo "building rosdoc_rosorg"
+env
+
 rosmake rosdoc_rosorg --rosdep-install --rosdep-yes --status-rate=0
-
-#override with newer sphinx
-sudo easy_install -U sphinx
 
 echo "running rosdoc_rosorg on index"
 cd `rospack find rosdoc_rosorg` && rosrun rosdoc_rosorg rosdoc_rosorg.py -o /tmp/doc --upload=wgs32:/var/www/www.ros.org/html/doc/api --checkout=/tmp/rosdoc_checkout  --repos=/tmp/repos.rosinstall
