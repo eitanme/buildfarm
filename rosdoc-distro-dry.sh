@@ -27,7 +27,6 @@ cat /tmp/rosdoc_checkout/setup.sh
 
 rosrun rosdoc_rosorg create_distro_index.py $DISTRO /tmp/distro-$DISTRO.yaml
 rosrun rosdoc_rosorg install_distro_index.py /tmp/distro-$DISTRO.yaml
-rosmake rosdoc_rosorg --no-rosdep
 
 echo "running rosdoc_rosorg on index"
 cd /tmp/rosdoc_checkout/rosorg/rosdoc_rosorg && rosrun rosdoc_rosorg rosdoc_rosorg.py -o /tmp/doc --upload=wgs32:/var/www/www.ros.org/html/doc/$DISTRO/api --checkout=/tmp/rosdoc_checkout --distro-index=/tmp/distro-$DISTRO.yaml --repos=/tmp/rosdoc_checkout/rosorg/rosdoc_rosorg/index/repos-$DISTRO.rosinstall
