@@ -101,7 +101,7 @@ if [ -n "$ROSBUILD_HOME_TAR" ]; then
   cat > pbuilder-home-tar.sh <<EOF
 #!/bin/bash -ex
 /bin/echo "vvvvvvvvvvvvvvvvvvv  pbuilder-home-tar.sh vvvvvvvvvvvvvvvvvvvvvv"
-tar xf $1 -C /home/rosbuild
+tar xf \$1 -C /home/rosbuild
 EOF
   sudo pbuilder execute \
       --basetgz /var/cache/pbuilder/$IMAGETYPE.$UBUNTU_DISTRO.$ARCH.tgz \
