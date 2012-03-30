@@ -95,6 +95,20 @@ if ! which pbuilder; then
     sudo apt-get -y install pbuilder
 fi
 
+# If ROSBUILD_HOME_TAR is given, then copy it in and unpack it.  Might be
+# able to combine this step with the main execute step below.
+if [ -n "$ROSBUILD_HOME_TAR" ]; then
+  cat > pbuilder-home-tar.sh <<EOF
+#!/bin/bash -ex
+/bin/echo "vvvvvvvvvvvvvvvvvvv  pbuilder-home-tar.sh vvvvvvvvvvvvvvvvvvvvvv"
+tar xf $ROSBUILD_HOME_TAR -C /home/rosbuild
+EOF
+  sudo pbuilder execute \
+      --basetgz /var/cache/pbuilder/$IMAGETYPE.$UBUNTU_DISTRO.$ARCH.tgz \
+      --inputfile $ROSBUILD_HOME_TAR \
+      -- $WORKSPACE/pbuilder-home-tar.sh
+fi
+
 sudo pbuilder execute \
     --basetgz /var/cache/pbuilder/$IMAGETYPE.$UBUNTU_DISTRO.$ARCH.tgz \
     --bindmounts "/var/cache/pbuilder/ccache /home" \
