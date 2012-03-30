@@ -106,6 +106,7 @@ EOF
   sudo pbuilder execute \
       --basetgz /var/cache/pbuilder/$IMAGETYPE.$UBUNTU_DISTRO.$ARCH.tgz \
       --inputfile $ROSBUILD_HOME_TAR \
+      --inputfile $WORKSPACE/buildfarm/$SCRIPT \
       -- $WORKSPACE/pbuilder-home-tar.sh /tmp/buildd/`basename $ROSBUILD_HOME_TAR`
 fi
 
