@@ -74,6 +74,9 @@ export STACK_NAME=$STACK_NAME
 export STACK_YAML_URL=$STACK_YAML_URL
 export ROSINSTALL_URL=$ROSINSTALL_URL
 export JOB_TYPE=$JOB_TYPE
+if [ -n "$ROSBUILD_HOME_TAR" ];  then
+  tar xf /tmp/buildd/`basename $ROSBUILD_HOME_TAR` -C /home/rosbuild
+fi
 pwd
 ls -l
 cd $WORKSPACE
@@ -95,25 +98,19 @@ if ! which pbuilder; then
     sudo apt-get -y install pbuilder
 fi
 
-# If ROSBUILD_HOME_TAR is given, then copy it in and unpack it.  Might be
-# able to combine this step with the main execute step below.
 if [ -n "$ROSBUILD_HOME_TAR" ]; then
-  cat > pbuilder-home-tar.sh <<EOF
-#!/bin/bash -ex
-/bin/echo "vvvvvvvvvvvvvvvvvvv  pbuilder-home-tar.sh vvvvvvvvvvvvvvvvvvvvvv"
-tar xf \$1 -C /home/rosbuild
-EOF
   sudo pbuilder execute \
       --basetgz /var/cache/pbuilder/$IMAGETYPE.$UBUNTU_DISTRO.$ARCH.tgz \
-      --inputfile $ROSBUILD_HOME_TAR \
+      --bindmounts "/var/cache/pbuilder/ccache /home" \
       --inputfile $WORKSPACE/buildfarm/$SCRIPT \
-      -- $WORKSPACE/pbuilder-home-tar.sh /tmp/buildd/`basename $ROSBUILD_HOME_TAR`
+      --inputfile $ROSBUILD_HOME_TAR \
+      -- $WORKSPACE/pbuilder-env.sh $SCRIPT
+else
+  sudo pbuilder execute \
+      --basetgz /var/cache/pbuilder/$IMAGETYPE.$UBUNTU_DISTRO.$ARCH.tgz \
+      --bindmounts "/var/cache/pbuilder/ccache /home" \
+      --inputfile $WORKSPACE/buildfarm/$SCRIPT \
+      -- $WORKSPACE/pbuilder-env.sh $SCRIPT
 fi
-
-sudo pbuilder execute \
-    --basetgz /var/cache/pbuilder/$IMAGETYPE.$UBUNTU_DISTRO.$ARCH.tgz \
-    --bindmounts "/var/cache/pbuilder/ccache /home" \
-    --inputfile $WORKSPACE/buildfarm/$SCRIPT \
-    -- $WORKSPACE/pbuilder-env.sh $SCRIPT
 
 /bin/echo "^^^^^^^^^^^^^^^^^^  dispatch.sh ^^^^^^^^^^^^^^^^^^^^"
