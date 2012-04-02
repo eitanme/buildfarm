@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from __future__ import print_function
 import argparse
 import yaml
@@ -78,26 +79,16 @@ URL_PROTOTYPE="https://raw.github.com/ros/rosdistro/master/releases/%s.yaml"
 
 def parse_options():
     parser = argparse.ArgumentParser(
-             description='Create a set of jenkins jobs '
-             'for source debs and binary debs for a catkin package.')
-    parser.add_argument('--fqdn', dest='fqdn',
-           help='The source repo to push to, fully qualified something...',
-           default='50.28.27.175')
+             description='Generate a rosinstall file from gbp yaml definition.')
     parser.add_argument(dest='rosdistro',
            help='The ros distro. electric, fuerte, galapagos')
-    parser.add_argument('--distros', nargs='+',
-           help='A list of debian distros. Default: %(default)s',
-           default=[])
-    parser.add_argument('--commit', dest='commit',
-           help='Really?', action='store_true')
-    parser.add_argument('--repo-workspace', dest='repos', action='store',
-           help='A directory into which all the repositories will be checked out into.')
-    parser.add_argument('--username',dest='username')
-    parser.add_argument('--password',dest='password')
-    args = parser.parse_args()
-    if args.commit and ( not args.username or not args.password ):
-        print('If you are going to commit, you need a username and pass.',file=sys.stderr)
-        sys.exit(1)
+    #parser.add_argument('--distros', nargs='+',
+    #       help='A list of debian distros. Default: %(default)s',
+    #       default=[])
+    parser.add_argument('-o', '--output', dest='output_file', action='store',
+                        default='output.rosinstall', help='The output filename')
+    parser.add_argument('-v', '--variant', dest='variant', action='store',
+                        default='all', help='Narrow generation to a specific variant')
     return parser.parse_args()
 
 
@@ -139,6 +130,19 @@ if __name__ == "__main__":
         print("No 'gbp-repos' key in yaml file")
         sys.exit(1)
 
-    rosinstall_data = [timed_compute_rosinstall_snippet(r['name'], r['url'], args.rosdistro) for r in repo_map['gbp-repos'] if 'url' in r and 'name' in r]
+    iterable = None
+    if args.variant != 'all':
+        assert 'variants' in repo_map, repo_map.keys()
+        assert args.variant in repo_map['variants']
+        iterable = repo_map['variants'][args.variant]
+    else:
+        iterable = (x['name'] for x in repo_map['gbp-repos'] if 'url' in x and 'name' in x)
+    def get_url(repo_map, stack_name):
+        return [x for x in repo_map['gbp-repos'] if x['name'] == stack_name][0]['url']
+    rosinstall_data = [timed_compute_rosinstall_snippet(s, get_url(repo_map, s), args.rosdistro) for s in iterable]
     rosinstall_data = [x for x in rosinstall_data if x]
-    print(yaml.safe_dump(rosinstall_data, default_flow_style=False))
+    yaml_out = yaml.safe_dump(rosinstall_data, default_flow_style=False)
+    
+    with open(args.output_file, 'w') as f:
+        f.write(yaml_out)
+    print("wrote", args.output_file)
