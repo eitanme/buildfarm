@@ -28,8 +28,8 @@ def get_api(api_pattern, org_name, repo_name):
 
 def list_tags(org_name, repo_name, prefix):
     url = get_api(PATTERN_GITHUB_V2_API_REPOS_SHOW_TAGS, org_name, repo_name)
-    print("getting org_name", org_name)
-    print("getting URL", url)
+    #print("getting org_name", org_name)
+    #print("getting URL", url)
     f = urllib2.urlopen(url)
     json_data = json.load(f)
     f.close()
@@ -65,7 +65,7 @@ def compute_version_for_latest(project_name, org_name, repo_name, distro_name):
     tags = [t[:-len(suffix)] for t in tags if t.endswith(suffix)]
     if not tags:
         return None
-    print("TAGS", [t[len(prefix):] for t in tags])
+    #print("TAGS", [t[len(prefix):] for t in tags])
     
     versions = sorted([distutils.version.LooseVersion(t[len(prefix):]) for t in tags])
     if not versions:
