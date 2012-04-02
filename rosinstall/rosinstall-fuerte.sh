@@ -1,8 +1,8 @@
 set -o errexit
 set -x
 
-sudo apt-get install python-setuptools mercurial -y 
-sudo easy_install -U vcstools rospkg rosinstall rosdep
+sudo apt-get install python-setuptools mercurial python-argparse -y 
+sudo easy_install -U vcstools rospkg rosinstall rosdep 
 
 # base will now contain common_msgs, actionlib for simplicity
 # create fuerte-ros_base.rosinstall, fuerte-ros_full.rosinstall
