@@ -4,8 +4,6 @@ set -x
 sudo apt-get install python-setuptools mercurial -y 
 sudo easy_install -U vcstools rospkg rosinstall rosdep
 
-DISTRO=fuerte
-
 # base will now contain common_msgs, actionlib for simplicity
 # create fuerte-ros_base.rosinstall, fuerte-ros_full.rosinstall
 wget -O /tmp/generate_wet_rosinstall.py https://raw.github.com/willowgarage/buildfarm/master/rosinstall/generate_wet_rosinstall.py
