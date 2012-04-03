@@ -76,6 +76,7 @@ export ROSINSTALL_URL=$ROSINSTALL_URL
 export JOB_TYPE=$JOB_TYPE
 if [ -n "$ROSBUILD_HOME_TAR" ];  then
   tar xvf /tmp/buildd/`basename $ROSBUILD_HOME_TAR` -C \$HOME
+  chown -R \$USER.\$USER \$HOME
   ls -al \$HOME
   whoami
 fi
