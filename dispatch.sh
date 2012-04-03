@@ -76,11 +76,11 @@ export ROSINSTALL_URL=$ROSINSTALL_URL
 export JOB_TYPE=$JOB_TYPE
 if [ -d \$HOME/.ssh ]; then
   cp -a \$HOME/.ssh /root
-  chown -R root.root \$HOME/.ssh
+  chown -R root.root /root/.ssh
 fi
 if [ -d \$HOME/.subversion ]; then
   cp -a \$HOME/.subversion /root
-  chown -R root.root \$HOME/.subversion
+  chown -R root.root /root/.subversion
 fi
 pwd
 ls -l
