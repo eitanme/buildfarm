@@ -74,9 +74,13 @@ export STACK_NAME=$STACK_NAME
 export STACK_YAML_URL=$STACK_YAML_URL
 export ROSINSTALL_URL=$ROSINSTALL_URL
 export JOB_TYPE=$JOB_TYPE
-if [ -n "$ROSBUILD_HOME_TAR" ];  then
-  tar xvf /tmp/buildd/`basename $ROSBUILD_HOME_TAR` -C \$HOME
-  ls -al \$HOME
+if [ -d \$HOME/.ssh ]; then
+  cp -a \$HOME/.ssh /root
+  chown -R root.root \$HOME/.ssh
+fi
+if [ -d \$HOME/.subversion ]; then
+  cp -a \$HOME/.subversion /root
+  chown -R root.root \$HOME/.subversion
 fi
 pwd
 ls -l
@@ -99,19 +103,10 @@ if ! which pbuilder; then
     sudo apt-get -y install pbuilder
 fi
 
-if [ -n "$ROSBUILD_HOME_TAR" ]; then
-  sudo pbuilder execute \
-      --basetgz /var/cache/pbuilder/$IMAGETYPE.$UBUNTU_DISTRO.$ARCH.tgz \
-      --bindmounts "/var/cache/pbuilder/ccache /home" \
-      --inputfile $WORKSPACE/buildfarm/$SCRIPT \
-      --inputfile $ROSBUILD_HOME_TAR \
-      -- $WORKSPACE/pbuilder-env.sh $SCRIPT
-else
-  sudo pbuilder execute \
-      --basetgz /var/cache/pbuilder/$IMAGETYPE.$UBUNTU_DISTRO.$ARCH.tgz \
-      --bindmounts "/var/cache/pbuilder/ccache /home" \
-      --inputfile $WORKSPACE/buildfarm/$SCRIPT \
-      -- $WORKSPACE/pbuilder-env.sh $SCRIPT
-fi
+sudo pbuilder execute \
+    --basetgz /var/cache/pbuilder/$IMAGETYPE.$UBUNTU_DISTRO.$ARCH.tgz \
+    --bindmounts "/var/cache/pbuilder/ccache /home" \
+    --inputfile $WORKSPACE/buildfarm/$SCRIPT \
+    -- $WORKSPACE/pbuilder-env.sh $SCRIPT
 
 /bin/echo "^^^^^^^^^^^^^^^^^^  dispatch.sh ^^^^^^^^^^^^^^^^^^^^"
