@@ -69,23 +69,22 @@ if ! rosmake -ak; then
   fail=1
 fi
 
-#TODO: turn on tests
-#if cd $WORKSPACE/build && make -k test; then echo "tests passed"; fi
-#
-#CLEANED_TEST_DIR=$ROS_TEST_RESULTS_DIR/_hudson
-#if [[ ! -d $CLEANED_TEST_DIR ]]; then
-#  mkdir -p $CLEANED_TEST_DIR
-#fi
-#rosci-clean-junit-xml
-#
-## In case there are no test results, make one up, to keep Jenkins from declaring
-## the build a failure
-#cat > $WORKSPACE/build/test_results/_hudson/jenkins_dummy.xml <<EOF
-#<?xml version="1.0" encoding="UTF-8"?>
-#<testsuite tests="1" failures="0" time="1" errors="0" name="dummy">
-#  <testcase name="dummy" status="run" time="1" classname="Results"/>
-#</testsuite>
-#EOF
+if rosmake --test-only -a ; then echo "tests passed"; fi
+
+CLEANED_TEST_DIR=$ROS_TEST_RESULTS_DIR/_hudson
+if [[ ! -d $CLEANED_TEST_DIR ]]; then
+  mkdir -p $CLEANED_TEST_DIR
+fi
+rosci-clean-junit-xml
+
+# In case there are no test results, make one up, to keep Jenkins from declaring
+# the build a failure
+cat > $WORKSPACE/build/test_results/_hudson/jenkins_dummy.xml <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite tests="1" failures="0" time="1" errors="0" name="dummy">
+  <testcase name="dummy" status="run" time="1" classname="Results"/>
+</testsuite>
+EOF
 
 sudo rm -rf $tmpdir
 
