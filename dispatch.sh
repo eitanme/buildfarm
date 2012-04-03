@@ -75,7 +75,8 @@ export STACK_YAML_URL=$STACK_YAML_URL
 export ROSINSTALL_URL=$ROSINSTALL_URL
 export JOB_TYPE=$JOB_TYPE
 if [ -n "$ROSBUILD_HOME_TAR" ];  then
-  tar xf /tmp/buildd/`basename $ROSBUILD_HOME_TAR` -C \$HOME
+  tar xvf /tmp/buildd/`basename $ROSBUILD_HOME_TAR` -C \$HOME
+  ls -l \$HOME
 fi
 pwd
 ls -l
