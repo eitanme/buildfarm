@@ -41,17 +41,19 @@ rosdep update
 
 rm -rf $WORKSPACE/src
 
+# Get the 'ros' stack first
+sudo apt-get install ros-$ROSDISTRO_NAME-ros
 # install the source we're supposed to build
 wget $ROSINSTALL_URL -O $tmpdir/my.rosinstall
-rosinstall -n $WORKSPACE/src $tmpdir/my.rosinstall
-# install all rosdep deps
-ROS_PACKAGE_PATH=$WORKSPACE/src rosdep install -ya
-# re-run rosinstall to produce a combined setup shell file
 rosinstall -n $WORKSPACE/src /opt/ros/$ROSDISTRO_NAME $tmpdir/my.rosinstall
-
 ## bootstrap env
 SETUP_FILE=$WORKSPACE/src/setup.sh
 . $SETUP_FILE
+# collect the names of the stacks that I need to install from debs
+sudo apt-get install -y `python -c "import itertools, rospkg; r=rospkg.RosStack(); set(['ros-fuerte-'+n.replace('_','-') for n in itertools.chain(*[r.get_depends(x,False) for x in r.list()]) if n not in r.list()])"`
+# install all rosdep deps
+rosdep install -ya
+
 
 export ROS_HOME=$WORKSPACE/ros_home
 export ROS_TEST_RESULTS_DIR=$WORKSPACE/test_results
