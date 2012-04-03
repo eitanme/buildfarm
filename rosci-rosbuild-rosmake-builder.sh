@@ -42,7 +42,7 @@ rosdep update
 rm -rf $WORKSPACE/src
 
 # Get the 'ros' stack first
-sudo apt-get install ros-$ROSDISTRO_NAME-ros
+sudo apt-get install -y ros-$ROSDISTRO_NAME-ros
 # install the source we're supposed to build
 wget $ROSINSTALL_URL -O $tmpdir/my.rosinstall
 rosinstall -n $WORKSPACE/src /opt/ros/$ROSDISTRO_NAME $tmpdir/my.rosinstall
