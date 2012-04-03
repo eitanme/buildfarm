@@ -3,11 +3,7 @@
 - hg: {local-name: moveit_ros, uri: 'ssh://vcs@kforge.ros.org/moveit/moveit_ros', version: default}
 - hg: {local-name: moveit_pr2, uri: 'ssh://vcs@kforge.ros.org/moveit/moveit_pr2', version: default}
 - hg: {local-name: robot_model, uri: 'https://kforge.ros.org/robotmodel/robot_model', version: default}
-- svn: {local-name: sbpl_arm_planning, uri: 'https://mediabox.grasp.upenn.edu/svn/penn-ros-pkgs/sbpl_arm_planning/trunk'}
+#- svn: {local-name: sbpl_arm_planning, uri: 'https://mediabox.grasp.upenn.edu/svn/penn-ros-pkgs/sbpl_arm_planning/trunk'}
 - svn: {local-name: sbpl, uri: 'https://code.ros.org/svn/wg-ros-pkg/stacks/motion_planners/trunk/sbpl'}
-- svn: {local-name: kinematics, uri: 'https://code.ros.org/svn/wg-ros-pkg/stacks/kinematics/trunk'}
 - hg: {local-name: universal_robot, uri: 'ssh://vcs@kforge.ros.org/ros_industrial/universal_robot', version: default}
 - git: {local-name: shape_msgs, uri: 'ssh://vcs@kforge.ros.org/shapes/shape_msgs', version: master}
-- svn: {local-name: motion_planners, uri: 'https://code.ros.org/svn/wg-ros-pkg/stacks/motion_planners/trunk'}
-- svn: {local-name: trajectory_filters, uri: 'https://code.ros.org/svn/wg-ros-pkg/stacks/trajectory_filters/trunk'}
-- svn: {local-name: motion_planning_common, uri: 'https://code.ros.org/svn/wg-ros-pkg/stacks/motion_planning_common/trunk'}
