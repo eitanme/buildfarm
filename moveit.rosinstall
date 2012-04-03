@@ -12,3 +12,5 @@
 - svn:
     local-name: kinematics
     uri: https://code.ros.org/svn/wg-ros-pkg/stacks/kinematics/trunk
+- hg: {local-name: universal_robot, uri: 'ssh://vcs@kforge.ros.org/ros_industrial/universal_robot', version: default}
+- git: {local-name: shape_msgs, uri: 'ssh://vcs@kforge.ros.org/shapes/shape_msgs', version: master}
