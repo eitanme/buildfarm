@@ -50,7 +50,7 @@ rosinstall -n $WORKSPACE/src /opt/ros/$ROSDISTRO_NAME $tmpdir/my.rosinstall
 SETUP_FILE=$WORKSPACE/src/setup.sh
 . $SETUP_FILE
 # collect the names of the stacks that I need to install from debs
-sudo apt-get install -y `python -c "import itertools, rospkg; r=rospkg.RosStack(); set(['ros-fuerte-'+n.replace('_','-') for n in itertools.chain(*[r.get_depends(x,False) for x in r.list()]) if n not in r.list()])"`
+sudo apt-get install `python -c "import itertools, rospkg; r=rospkg.RosStack(); print ' '.join(set(['ros-fuerte-'+n.replace('_','-') for n in itertools.chain(*[r.get_depends(x,False) for x in r.list()]) if n not in r.list()]))"`
 # install all rosdep deps
 rosdep install -ya
 
