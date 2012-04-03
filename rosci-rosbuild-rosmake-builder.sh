@@ -43,6 +43,8 @@ rm -rf $WORKSPACE/src
 
 # install the source we're supposed to build
 wget $ROSINSTALL_URL -O $tmpdir/my.rosinstall
+#DEBUG
+hg clone ssh://vcs@kforge.ros.org/moveit/moveit_manipulation
 rosinstall -n $WORKSPACE/src $tmpdir/my.rosinstall
 # install all rosdep deps
 ROS_PACKAGE_PATH=$WORKSPACE/src rosdep install -ya
