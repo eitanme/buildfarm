@@ -16,6 +16,11 @@ sudo sh -c "echo \"deb http://packages.ros.org/ros-shadow-fixed/ubuntu $UBUNTU_D
 wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
 sudo apt-get update
 
+if [ "$UBUNTU_DISTRO" = "lucid" ]; then
+  # Workaround for libmysqlclient-dev problem on Lucid
+  sudo apt-get install -y --reinstall libmysqlclient-dev
+fi
+
 for p in $APT_GET_DEPS; do
   sudo apt-get install -y $p > /dev/null
 done
