@@ -96,15 +96,18 @@ TOP=$(cd `dirname $0` ; /bin/pwd)
 
 /usr/bin/env
 
-$WORKSPACE/buildfarm/create_chroot.sh $IMAGETYPE $UBUNTU_DISTRO $ARCH
-
+tmpdir=`mktemp -d`
+basetgz_filename=$tmpdir/basetgz
+$WORKSPACE/buildfarm/create_chroot.sh $IMAGETYPE $UBUNTU_DISTRO $ARCH $basetgz_filename
+basetgz=`cat $basetgz_filename`
+rm -rf $tmpdir
 
 if ! which pbuilder; then
     sudo apt-get -y install pbuilder
 fi
 
 sudo pbuilder execute \
-    --basetgz /var/cache/pbuilder/$IMAGETYPE.$UBUNTU_DISTRO.$ARCH.tgz \
+    --basetgz $basetgz \
     --bindmounts "/var/cache/pbuilder/ccache /home" \
     --inputfile $WORKSPACE/buildfarm/$SCRIPT \
     -- $WORKSPACE/pbuilder-env.sh $SCRIPT
