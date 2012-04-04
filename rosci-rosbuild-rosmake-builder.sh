@@ -65,7 +65,7 @@ export ROS_TEST_RESULTS_DIR=$WORKSPACE/test_results
 # rosbuild-specific stuff
 #
 fail=0
-if ! rosmake -ak; then
+if ! rosmake -ak --status-rate=0.1 ; then
   fail=1
 fi
 
