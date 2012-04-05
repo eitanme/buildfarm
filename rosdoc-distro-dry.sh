@@ -11,8 +11,10 @@ cat > $WORKSPACE/script.sh <<DELIM
 set -o errexit
 set -x
 
-sudo apt-get install python-setuptools mercurial git-core python-sphinx python-svn doxygen python-epydoc -y 1> /dev/null
+sudo apt-get install python-setuptools mercurial git-core python-svn doxygen python-epydoc -y 1> /dev/null
 
+echo "installing sphinx"
+sudo easy_install -U sphinx
 echo "installing vcstools"
 sudo easy_install -U vcstools
 echo "installing index via rosinstall"
