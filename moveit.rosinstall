@@ -8,3 +8,4 @@
 - svn: {local-name: sbpl, uri: 'https://code.ros.org/svn/wg-ros-pkg/stacks/motion_planners/trunk/sbpl'}
 - hg: {local-name: universal_robot, uri: 'ssh://vcs@kforge.ros.org/ros_industrial/universal_robot', version: default}
 - git: {local-name: shape_msgs, uri: 'ssh://vcs@kforge.ros.org/shapes/shape_msgs', version: master}
+- git: {local-name: shape_tools, uri: 'ssh://vcs@kforge.ros.org/shapes/shape_tools', version: master}
