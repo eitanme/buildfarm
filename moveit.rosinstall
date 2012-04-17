@@ -1,4 +1,5 @@
 - hg: {local-name: moveit, uri: 'ssh://vcs@kforge.ros.org/moveit/moveit', version: default}
+- hg: {local-name: moveit_msgs, uri: 'ssh://vcs@kforge.ros.org/moveit/moveit_msgs', version: default}
 - hg: {local-name: moveit_ros, uri: 'ssh://vcs@kforge.ros.org/moveit/moveit_ros', version: default}
 - hg: {local-name: moveit_manipulation, uri: 'ssh://vcs@kforge.ros.org/moveit/moveit_manipulation', version: default}
 - hg: {local-name: moveit_pr2, uri: 'ssh://vcs@kforge.ros.org/moveit/moveit_pr2', version: default}
