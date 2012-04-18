@@ -26,6 +26,7 @@ rosinstall -j8 /tmp/rosdoc_checkout /tmp/repos.rosinstall --rosdep-yes  --contin
 
 echo "DISK USAGE"
 du -sh /tmp/rosdoc_checkout/*
+du -s /tmp/rosdoc_checkout/* | sort -rn
 . /tmp/rosdoc_checkout/setup.sh
 
 env
