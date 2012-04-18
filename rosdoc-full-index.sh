@@ -23,6 +23,9 @@ chmod +x /tmp/generate_index.py
 cat /tmp/repos.rosinstall
 
 rosinstall -j8 /tmp/rosdoc_checkout /tmp/repos.rosinstall --rosdep-yes  --continue-on-error
+
+echo "DISK USAGE"
+du -sh /tmp/rosdoc_checkout/*
 . /tmp/rosdoc_checkout/setup.sh
 
 env
