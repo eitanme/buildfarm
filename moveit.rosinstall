@@ -10,3 +10,4 @@
 - hg: {local-name: universal_robot, uri: 'ssh://vcs@kforge.ros.org/ros_industrial/universal_robot', version: default}
 - git: {local-name: shape_msgs, uri: 'ssh://vcs@kforge.ros.org/shapes/shape_msgs', version: master}
 - git: {local-name: shape_tools, uri: 'ssh://vcs@kforge.ros.org/shapes/shape_tools', version: master}
+- svn: {local-name: octomap_stacks, uri: 'https://alufr-ros-pkg.googlecode.com/svn/branches/octomap_mapping-fuerte'}
