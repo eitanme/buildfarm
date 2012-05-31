@@ -37,9 +37,9 @@ done
 sudo rosdep init || true
 rosdep update
 
-# install the stack.yaml Depends
-wget $STACK_YAML_URL -O $tmpdir/stack.yaml
-APT_DEPENDENCIES=`rosci-catkin-depends $tmpdir/stack.yaml $ROSDISTRO_NAME $OS_NAME $OS_PLATFORM`
+# install the stack.xml Depends
+wget $STACK_XML_URL -O $tmpdir/stack.xml
+APT_DEPENDENCIES=`rosci-catkin-depends $tmpdir/stack.xml $ROSDISTRO_NAME $OS_NAME $OS_PLATFORM`
 sudo apt-get install -y $APT_DEPENDENCIES
 
 ## bootstrap env, but only the file is present (it won't be there if we're
