@@ -22,17 +22,18 @@ chmod +x /tmp/generate_index.py
 /tmp/generate_index.py /tmp/repos.rosinstall
 cat /tmp/repos.rosinstall
 
-rosinstall -j8 /tmp/rosdoc_checkout /tmp/repos.rosinstall --rosdep-yes  --continue-on-error
+rosinstall -j8 /tmp/rosdoc_checkout /tmp/repos.rosinstall --rosdep-yes  --continue-on-error -n
 
 echo "DISK USAGE"
 du -sh /tmp/rosdoc_checkout/*
 du -s /tmp/rosdoc_checkout/* | sort -rn
+. /opt/ros/fuerte/setup.sh
 . /tmp/rosdoc_checkout/setup.sh
 
 env
 
 rosdep install rosdoc_rosorg
-/opt/ros/fuerte/bin/rosmake rosdoc_rosorg --status-rate=0
+rosmake rosdoc_rosorg --status-rate=0
 
 echo "running rosdoc_rosorg on index"
 cd `rospack find rosdoc_rosorg` && rosrun rosdoc_rosorg rosdoc_rosorg.py -o /tmp/doc --upload=wgs32:/var/www/www.ros.org/html/doc/api --checkout=/tmp/rosdoc_checkout  --repos=/tmp/repos.rosinstall
