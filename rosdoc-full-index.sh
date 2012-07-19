@@ -9,7 +9,7 @@ sudo add-apt-repository ppa:bzr/ppa
 sudo apt-get update
 
 sudo apt-get install python-setuptools mercurial bzr git-core doxygen python-epydoc python-svn -y 
-sudo easy_install -U vcstools rospkg rosinstall sphinx
+sudo easy_install -U vcstools rospkg rosinstall rosdep sphinx
 
 export ROS_LANG_DISABLE=roseus:rosoct:rosjava
 
@@ -31,7 +31,8 @@ du -s /tmp/rosdoc_checkout/* | sort -rn
 
 env
 
-rosmake rosdoc_rosorg --rosdep-install --rosdep-yes --status-rate=0
+rosdep install rosdoc_rosorg
+/opt/ros/fuerte/bin/rosmake rosdoc_rosorg --status-rate=0
 
 echo "running rosdoc_rosorg on index"
 cd `rospack find rosdoc_rosorg` && rosrun rosdoc_rosorg rosdoc_rosorg.py -o /tmp/doc --upload=wgs32:/var/www/www.ros.org/html/doc/api --checkout=/tmp/rosdoc_checkout  --repos=/tmp/repos.rosinstall
