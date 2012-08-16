@@ -37,6 +37,10 @@ done
 sudo rosdep init || true
 rosdep update
 
+u="https://github.com/willowgarage/catkin-debs"
+cd $tmpdir && git clone --depth 1 $u `basename $u` && cd `basename $u` && . setup.sh
+
+
 # install the stack.xml Depends
 APT_DEPENDENCIES=`rosci-catkin-depends $ROSDISTRO_NAME $OS_NAME $OS_PLATFORM $STACK_BUILD_DEPENDS`
 sudo apt-get install -y $APT_DEPENDENCIES
