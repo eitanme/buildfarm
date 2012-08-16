@@ -6,7 +6,7 @@ APT_GET_DEPS="python-setuptools python-yaml python-pip libgtest-dev mercurial su
 PIP_STATIC_DEPS="nose mock coverage"
 # Stuff that changes a lot (install with -U)
 PIP_DEPS=""
-MANUAL_PY_DEP_GIT_URIS="https://github.com/willowgarage/catkin-debs"
+MANUAL_PY_DEP_GIT_URIS="" #https://github.com/willowgarage/catkin-debs"
 
 # Add the ROS repo
 #sudo sh -c "echo \"deb http://packages.ros.org/ros-shadow-fixed/ubuntu $UBUNTU_DISTRO main\" > /etc/apt/sources.list.d/ros-latest.list"
