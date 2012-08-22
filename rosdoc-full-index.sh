@@ -11,7 +11,7 @@ sudo apt-get update
 sudo apt-get install python-setuptools mercurial bzr git-core doxygen python-epydoc python-svn pkg-config python-vcstools python-rospkg python-rosinstall python-rosdep -y 
 sudo easy_install -U sphinx
 
-export ROS_LANG_DISABLE=roseus:rosoct:rosjava
+export ROS_LANG_DISABLE=roseus:rosoct:rosjava:rosruby
 
 # use ros-fuerte for indexer
 sudo apt-get install ros-fuerte-documentation -y
