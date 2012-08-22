@@ -22,12 +22,14 @@ chmod +x /tmp/generate_index.py
 /tmp/generate_index.py /tmp/repos.rosinstall --rosdistro fuerte
 cat /tmp/repos.rosinstall
 
+#Clean the existing rosinstall, but not the workspace
+rm -f /tmp/rosdoc_checkout/.rosinstall 
+
 rosinstall -j8 /tmp/rosdoc_checkout /tmp/repos.rosinstall --rosdep-yes  --continue-on-error -n
 
 echo "DISK USAGE"
 du -sh /tmp/rosdoc_checkout/*
 du -s /tmp/rosdoc_checkout/* | sort -rn
-. /opt/ros/fuerte/setup.sh
 . /tmp/rosdoc_checkout/setup.sh
 
 env
