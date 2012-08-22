@@ -37,7 +37,6 @@ fi
 rosdep update
 
 rosdep install rosdoc_rosorg -y
-rosmake rosdoc_rosorg --status-rate=0
 
 echo "running rosdoc_rosorg on index"
 cd `rospack find rosdoc_rosorg` && rosrun rosdoc_rosorg rosdoc_rosorg.py -o /tmp/doc --upload=wgs32:/var/www/www.ros.org/html/doc/api --checkout=/tmp/rosdoc_checkout  --repos=/tmp/repos.rosinstall
