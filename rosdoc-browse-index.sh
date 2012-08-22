@@ -30,7 +30,7 @@ cat $WORKSPACE/rosdoc_checkout/setup.sh
 
 env
 
-if [ ! -e /etc/ros/rosdep/sources.list.d/20-default.list ] then
+if [ ! -e /etc/ros/rosdep/sources.list.d/20-default.list ] ; then
   sudo rosdep init
 fi
 rosdep update
