@@ -6,7 +6,7 @@ sudo apt-get install -y python-software-properties
 sudo add-apt-repository ppa:bzr/ppa
 sudo apt-get update
 
-sudo apt-get install python-setuptools mercurial bzr git-core doxygen python-epydoc python-svn python-vcstools python-rospkg python-rosinstall -y 
+sudo apt-get install python-setuptools mercurial bzr git-core doxygen python-epydoc python-svn python-vcstools python-rospkg python-rosinstall python-rosdep -y 
 sudo easy_install -U sphinx
 
 export ROS_LANG_DISABLE=roseus:rosoct:rosjava
