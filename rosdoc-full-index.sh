@@ -31,8 +31,12 @@ du -s /tmp/rosdoc_checkout/* | sort -rn
 . /tmp/rosdoc_checkout/setup.sh
 
 env
+if [ ! -e /etc/ros/rosdep/sources.list.d/20-default.list ] then
+  sudo rosdep init
+fi
+rosdep update
 
-rosdep install rosdoc_rosorg
+rosdep install rosdoc_rosorg -y
 rosmake rosdoc_rosorg --status-rate=0
 
 echo "running rosdoc_rosorg on index"
