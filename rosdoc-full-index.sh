@@ -46,4 +46,4 @@ cat $WORKSPACE/script.sh
 
 wget https://code.ros.org/svn/ros/stacks/ros_release/trunk/hudson/scripts/run_chroot.py --no-check-certificate -O $WORKSPACE/run_chroot.py
 chmod +x $WORKSPACE/run_chroot.py
-cd $WORKSPACE && $WORKSPACE/run_chroot.py --distro=lucid --arch=amd64 --script=$WORKSPACE/script.sh --ramdisk --ssh-key-file=/home/rosbuild/rosbuild-ssh.tar
+cd $WORKSPACE && $WORKSPACE/run_chroot.py --distro=lucid --arch=amd64 --script=$WORKSPACE/script.sh --ssh-key-file=/home/rosbuild/rosbuild-ssh.tar
