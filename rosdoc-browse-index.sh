@@ -24,6 +24,8 @@ cat /tmp/repos.rosinstall
 rm -f $WORKSPACE/rosdoc_checkout/.rosinstall
 
 rosinstall -j8 $WORKSPACE/rosdoc_checkout /tmp/repos.rosinstall -n --continue-on-error --delete-changed-uris || true
+
+cat $WORKSPACE/rosdoc_checkout/setup.sh
 . $WORKSPACE/rosdoc_checkout/setup.sh
 
 env
