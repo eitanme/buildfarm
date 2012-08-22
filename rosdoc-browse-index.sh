@@ -28,9 +28,6 @@ rosinstall -j8 $WORKSPACE/rosdoc_checkout /tmp/repos.rosinstall -n --continue-on
 
 env
 
-echo "listing bin contents" 
-ls /opt/ros/fuerte/share/ros/bin
-
 rosmake rosdoc_rosorg --rosdep-install --rosdep-yes --status-rate=0
 
 echo "running rosdoc_rosorg on index"
