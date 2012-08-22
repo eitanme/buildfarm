@@ -33,6 +33,7 @@ env
 if [ ! -e /etc/ros/rosdep/sources.list.d/20-default.list ] ; then
   sudo rosdep init
 fi
+rosdep --version
 rosdep update
 rosdep install rosdoc_rosorg -y
 
