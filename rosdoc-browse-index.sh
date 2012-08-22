@@ -30,6 +30,8 @@ cat $WORKSPACE/rosdoc_checkout/setup.sh
 
 env
 
+sudo rosdep init
+rosdep update
 rosdep install rosdoc_rosorg -y
 
 rosmake rosdoc_rosorg --status-rate=0
