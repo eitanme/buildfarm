@@ -2,6 +2,7 @@ set -ex
 /bin/echo "vvvvvvvvvvvvvvvvvvv  dispatch.sh vvvvvvvvvvvvvvvvvvvvvv"
 
 #always ask for pbuilder to make sure we have the updated patched version
+sudo apt-get update
 sudo apt-get -y install pbuilder
 
 export WORKSPACE
