@@ -6,7 +6,7 @@ DISTRO=$2
 ARCH=$3
 BASETGZ_FILENAME=$4
 
-BASETGZ_VERSION="0.1"
+BASETGZ_VERSION="0.2"
 
 BASETGZ=/var/cache/pbuilder/$IMAGETYPE.$DISTRO.$ARCH-$BASETGZ_VERSION.tgz
 echo $BASETGZ > $BASETGZ_FILENAME
@@ -19,7 +19,7 @@ REPOSTAMP=$(git log -n1 --pretty="%at")
 cd $WORKSPACE
 
 if [ ! -f $BASETGZ ] ; then
-    sudo flock $IMAGELOCK -c "pbuilder --create --distribution $DISTRO --architecture $ARCH --basetgz $BASETGZ --debootstrapopts --variant=buildd --components \"main universe multiverse\" --othermirror \"deb http://aptproxy.willowgarage.com/us.archive.ubuntu.com/ubuntu/ $DISTRO-updates main restricted\""
+    sudo flock $IMAGELOCK -c "pbuilder --create --distribution $DISTRO --architecture $ARCH --basetgz $BASETGZ --debootstrapopts --variant=buildd --components \"main universe multiverse\" --othermirror \"deb http://aptproxy.willowgarage.com/us.archive.ubuntu.com/ubuntu/ $DISTRO-updates main restricted\" --debootstrapopts --keyring=/etc/apt/trusted.gpg"
 fi
 
 UPDATE=$WORKSPACE/buildfarm/update_chroot.sh
