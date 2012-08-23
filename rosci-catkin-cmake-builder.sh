@@ -1,7 +1,7 @@
 set -ex
 tmpdir=`mktemp -d`
 
-APT_GET_DEPS="python-setuptools python-yaml python-pip libgtest-dev mercurial subversion git-core cmake build-essential python-rospkg python-rosdep"
+APT_GET_DEPS="python-setuptools python-yaml python-pip libgtest-dev mercurial subversion git-core cmake build-essential python-rospkg python-rosdep pbuilder"
 # Stuff that doesn't change much
 PIP_STATIC_DEPS="nose mock coverage"
 # Stuff that changes a lot (install with -U)
