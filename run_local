@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+if [ $# -ne 6 ] ;  then
+  echo "Usage: run_local stack ros_distro ubuntu_distro arch script workspace"
+  exit
+fi
+
+export ROSDISTRO_NAME=$2
+export ROS_DISTRO=$2
+export UBUNTU_DISTRO=$3
+export OS_PLATFORM=$3
+export ARCH=$4
+export SCRIPT=$5
+export STACK_NAME=$1
+export WORKSPACE=$6
+
+export OS_NAME="ubuntu"
+export JOB_TYPE="catkin"
+export IMAGETYPE="all"
+export ROS_TEST_RESULTS_DIR=$WORKSPACE/build/test_results
+
+
+echo "  - stack:         " $STACK_NAME
+echo "  - ros distro:    " $ROS_DISTRO
+echo "  - ubuntu distro: " $UBUNTU_DISTRO
+echo "  - architecture:  " $ARCH
+echo "  - script:        " $SCRIPT
+echo "  - workspace:     " $WORKSPACE
+
+# get the latest dispatch script
+wget https://raw.github.com/willowgarage/buildfarm/master/dispatch.sh -O $WORKSPACE/build.sh
+
+cd $WORKSPACE
+bash ./build.sh
