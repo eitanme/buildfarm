@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+
+import sys
+import jenkins
+import urllib
+
+CONFIG_PATH = 'http://wgs24.willowgarage.com/hudson-html/hds.xml'
+SERVER = 'http://jenkins.willowgarage.com:8080/'
+
+# Schedule a set of jobs in Jenkins
+def main():
+    if len(sys.argv) != 6:
+        print "Usage: %s stack ros_distro ubuntu_distro arch script"%(sys.argv[0])
+        sys.exit(0)
+
+    # get arguments
+    params = {}
+    params['STACK'] = sys.argv[1]
+    params['ROS_DISTRO'] = sys.argv[2]
+    params['UBUNTU_DISTRO'] = sys.argv[3]
+    params['ARCH'] = sys.argv[4]
+    params['SCRIPT'] = sys.argv[5]
+
+    # open template xlm file
+    with open('jenkins_template.xml') as f:
+        job_xml = f.read()
+
+    # replace @xxx@ in template file
+    for key, value in params.iteritems():
+        job_xml = job_xml.replace("@%s@"%key, value)
+    print "Resulting xml: \n%s"%job_xml
+
+    # create hudson instance                                                                                                            
+    info = urllib.urlopen(CONFIG_PATH).read().split(',')
+    jenkins_instance = jenkins.Jenkins(SERVER, info[0], info[1])
+    
+    # schedule a new job
+    job_name = "%s-%s-%s-%s-%s"%(params['SCRIPT'], params['STACK'], params['ROS_DISTRO'], params['UBUNTU_DISTRO'], params['ARCH'])
+    if jenkins_instance.job_exists(job_name):
+        jenkins_instance.reconfig_job(job_name, job_xml)
+        print "Reconfigured job %s"%job_name
+    else:
+        jenkins_instance.create_job(job_name, job_xml)
+        print "Created job %s"%job_name
+
+if __name__ == "__main__":
+    main()
