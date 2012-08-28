@@ -1,6 +1,10 @@
 set -ex
 /bin/echo "vvvvvvvvvvvvvvvvvvv  dispatch.sh vvvvvvvvvvvvvvvvvvvvvv"
 
+#always ask for pbuilder to make sure we have the updated patched version
+sudo apt-get update
+sudo apt-get -y install pbuilder
+
 export WORKSPACE
 
 if [ -z "$WORKSPACE" ] ; then
@@ -113,9 +117,8 @@ $WORKSPACE/buildfarm/create_chroot.sh $IMAGETYPE $UBUNTU_DISTRO $ARCH $basetgz_f
 basetgz=`cat $basetgz_filename`
 rm -rf $tmpdir
 
-if ! which pbuilder; then
-    sudo apt-get -y install pbuilder
-fi
+
+
 
 sudo pbuilder execute \
     --basetgz $basetgz \

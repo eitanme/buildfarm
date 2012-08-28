@@ -1,12 +1,12 @@
 set -ex
 tmpdir=`mktemp -d`
 
-APT_GET_DEPS="python-setuptools python-yaml python-pip libgtest-dev mercurial subversion git-core cmake build-essential"
+APT_GET_DEPS="python-setuptools python-yaml python-pip libgtest-dev mercurial subversion git-core cmake build-essential python-rospkg python-rosdep"
 # Stuff that doesn't change much
 PIP_STATIC_DEPS="nose mock coverage"
 # Stuff that changes a lot (install with -U)
-PIP_DEPS="rospkg rosdep"
-MANUAL_PY_DEP_GIT_URIS="https://github.com/willowgarage/catkin-debs"
+PIP_DEPS=""
+MANUAL_PY_DEP_GIT_URIS="" #https://github.com/willowgarage/catkin-debs"
 
 # Add the ROS repo
 #sudo sh -c "echo \"deb http://packages.ros.org/ros-shadow-fixed/ubuntu $UBUNTU_DISTRO main\" > /etc/apt/sources.list.d/ros-latest.list"
@@ -36,6 +36,10 @@ done
 # Ignore error on init; it might have already happened.
 sudo rosdep init || true
 rosdep update
+
+u="https://github.com/willowgarage/catkin-debs"
+cd $tmpdir && git clone --depth 1 $u `basename $u` && cd `basename $u` && . setup.sh
+
 
 # install the stack.xml Depends
 APT_DEPENDENCIES=`rosci-catkin-depends $ROSDISTRO_NAME $OS_NAME $OS_PLATFORM $STACK_BUILD_DEPENDS`
