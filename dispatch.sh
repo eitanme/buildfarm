@@ -39,7 +39,6 @@ fi
 #  update buildfarm utils
 #
 cd $WORKSPACE
-
 if [ -d buildfarm ] ; then
   cd buildfarm
   git clean -dfx
@@ -48,6 +47,15 @@ if [ -d buildfarm ] ; then
   cd ..
 else
   git clone git://github.com/willowgarage/buildfarm.git
+fi
+if [ -d catkin-debs ] ; then
+  cd catkin-debs
+  git clean -dfx
+  git reset --hard HEAD
+  git pull
+  cd ..
+else
+  git clone git://github.com/willowgarage/catkin-debs.git
 fi
 
 . ./buildfarm/buildfarm_util.sh
@@ -74,7 +82,9 @@ export STACK_NAME=$STACK_NAME
 export STACK_XML_URL=$STACK_XML_URL
 export STACK_BUILD_DEPENDS="$STACK_BUILD_DEPENDS"
 export ROSINSTALL_URL=$ROSINSTALL_URL
+export ROS_TEST_RESULTS_DIR=$ROS_TEST_RESULTS_DIR
 export JOB_TYPE=$JOB_TYPE
+export PYTHONPATH=$WORKSPACE/catkin-debs/src/buildfarm
 if [ -d \$HOME/.ssh ]; then
   cp -a \$HOME/.ssh /root
   chown -R root.root /root/.ssh
@@ -109,7 +119,7 @@ fi
 
 sudo pbuilder execute \
     --basetgz $basetgz \
-    --bindmounts "/var/cache/pbuilder/ccache /home" \
+    --bindmounts "/var/cache/pbuilder/ccache $WORKSPACE" \
     --inputfile $WORKSPACE/buildfarm/$SCRIPT \
     -- $WORKSPACE/pbuilder-env.sh $SCRIPT
 
