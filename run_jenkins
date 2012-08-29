@@ -12,7 +12,7 @@ def main():
     if len(sys.argv) != 6:
         print "Usage: %s stack ros_distro ubuntu_distro arch script"%(sys.argv[0])
         sys.exit(0)
-
+    
     # get arguments
     params = {}
     params['STACK'] = sys.argv[1]

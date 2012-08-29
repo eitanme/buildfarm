@@ -57,8 +57,10 @@ def call(command, envir=None):
     print str(res)
     print str(err)
     if helper.returncode != 0:
-        print "/!\ Failed to execute command '%s'"%command
-        raise Exception("Failed to execute command '%s'"%command)
+        msg = "Failed to execute command '%s'"%command
+        print "/!\  %s"%msg
+        generate_xml(msg, str(res), str(err))
+        raise Exception(msg)
     return res
 
 
@@ -70,18 +72,15 @@ def rosdep_to_apt(rosdep):
     return apt
 
 
-def hudson_results():
-    print "Generating hudson results"
-    workspace = os.environ['WORKSPACE']
-    test_result_dir = os.environ['ROS_TEST_RESULTS_DIR'] + '/_hudson'
-    try:
-        os.mkdir(test_result_dir)
-    except:
-        pass
-    call("export PYTHONPATH=%s/catkin-debs/src && %s/catkin-debs/scripts/rosci-clean-junit-xml"%(workspace, workspace))
+def ensure_dir(f):
+    d = os.path.dirname(f)
+    if not os.path.exists(d):
+        os.makedirs(d)
 
+def generate_xml(msg, stdout, stderr):
     # generate dummy results in case the build didn't generate any
-    with open('%s/build/test_results/_hudson/jenkins_dummy.xml'%workspace, 'w') as f:
+    ensure_dir('%s/xml_ouput'%workspace)
+    with open('%s/xml_output/jenkins_dummy.xml'%workspace, 'w') as f:
         f.write('<?xml version="1.0" encoding="UTF-8"?><testsuite tests="1" failures="0" time="1" errors="0" name="dummy"><testcase name="dummy" status="run" time="1" classname="Results"/></testsuite>')
 
 
@@ -100,6 +99,7 @@ def get_dependencies(stack_folder):
         raise "Failed to parse stack.xml of stack in folder %s"%stack_folder
 
 
+    
 
 
 def main():
@@ -239,12 +239,10 @@ def main():
 if __name__ == '__main__':
     # global try
     try:
-        res = main()
-        sys.exit(res)
+        main()
 
     # global catch
     except Exception as ex:
         print "Global exception caught in prerelease script!."
-        print ex.value
         sys.exit(-1)
 
