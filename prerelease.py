@@ -74,14 +74,18 @@ def rosdep_to_apt(rosdep):
 
 def ensure_dir(f):
     d = os.path.dirname(f)
+    print "checking if dir %s exists"%d
     if not os.path.exists(d):
         os.makedirs(d)
 
 def generate_xml(msg, stdout, stderr):
     # generate dummy results in case the build didn't generate any
-    ensure_dir('%s/xml_ouput'%workspace)
-    with open('%s/xml_output/jenkins_dummy.xml'%workspace, 'w') as f:
+    xml_file = '%s/xml_output/jenkins_dummy.xml'%workspace
+    ensure_dir(xml_file)
+    print "Directory created"
+    with open(xml_file, 'w') as f:
         f.write('<?xml version="1.0" encoding="UTF-8"?><testsuite tests="1" failures="0" time="1" errors="0" name="dummy"><testcase name="dummy" status="run" time="1" classname="Results"/></testsuite>')
+    print "Finished writing dummy xml"
 
 
 def get_dependencies(stack_folder):
@@ -102,6 +106,8 @@ def get_dependencies(stack_folder):
     
 
 
+workspace = os.environ['WORKSPACE']
+
 def main():
     print
     print "==========================================================================="
@@ -109,7 +115,8 @@ def main():
     print "==========================================================================="
     print
 
-    workspace = os.environ['WORKSPACE']
+    generate_xml('wim', 'foo', 'bar')
+
     buildspace = workspace + '/tmp/'  # should become '/tmp/'
     envbuilder = 'source /opt/ros/%s/setup.bash'%os.environ['ROSDISTRO_NAME']
 
