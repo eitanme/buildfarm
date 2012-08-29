@@ -18,7 +18,7 @@ class AptDepends:
                 package = l.split('Package: ')[1]
             if 'Depends: ' in l:
                 if not package:
-                    raise "Found 'depends' but not 'package'"
+                    raise BuildException("Found 'depends' but not 'package' while parsing the apt repository index file")
                 self.dep[package] = [d.split(' ')[0] for d in (l.split('Depends: ')[1].split(', '))]
                 package = None
         
@@ -60,7 +60,7 @@ def call(command, envir=None):
         msg = "Failed to execute command '%s'"%command
         print "/!\  %s"%msg
         generate_xml(msg, str(res), str(err))
-        raise Exception(msg)
+        raise BuildException(msg)
     return res
 
 
@@ -74,18 +74,20 @@ def rosdep_to_apt(rosdep):
 
 def ensure_dir(f):
     d = os.path.dirname(f)
-    print "checking if dir %s exists"%d
     if not os.path.exists(d):
         os.makedirs(d)
 
 def generate_xml(msg, stdout, stderr):
-    # generate dummy results in case the build didn't generate any
-    xml_file = '%s/xml_output/jenkins_dummy.xml'%workspace
+    # open template xlm file
+    with open('%s/buildfarm/junit_ouput_template.xml'%workspace) as f:
+        result_xml = f.read()
+    result_xml = result_xml.replace('@MSG@', msg)
+
+    # write resulting file
+    xml_file = '%s/xml_output/jenkins_failure.xml'%workspace
     ensure_dir(xml_file)
-    print "Directory created"
     with open(xml_file, 'w') as f:
-        f.write('<?xml version="1.0" encoding="UTF-8"?><testsuite tests="1" failures="0" time="1" errors="0" name="dummy"><testcase name="dummy" status="run" time="1" classname="Results"/></testsuite>')
-    print "Finished writing dummy xml"
+        f.write(result_xml)
 
 
 def get_dependencies(stack_folder):
@@ -100,10 +102,14 @@ def get_dependencies(stack_folder):
         print "System Dependencies: %s"%(' '.join(system_dependencies))
         return stack_dependencies + system_dependencies
     except Exception, ex:
-        raise "Failed to parse stack.xml of stack in folder %s"%stack_folder
+        raise BuildException("Failed to parse stack.xml of stack in folder %s"%stack_folder)
 
 
     
+class BuildException(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
 
 
 workspace = os.environ['WORKSPACE']
@@ -114,8 +120,6 @@ def main():
     print "======================== PRERELEASE SCRIPT ================================"
     print "==========================================================================="
     print
-
-    generate_xml('wim', 'foo', 'bar')
 
     buildspace = workspace + '/tmp/'  # should become '/tmp/'
     envbuilder = 'source /opt/ros/%s/setup.bash'%os.environ['ROSDISTRO_NAME']
@@ -170,7 +174,6 @@ def main():
         (key, _, value) = line.partition("=")
         build_env[key] = value
     proc.communicate()
-    print "Environment Keys :%s"%str(build_env.keys())
 
     # build stack
     stackbuildspace = buildspace + '/build_stack'
@@ -247,9 +250,18 @@ if __name__ == '__main__':
     # global try
     try:
         main()
+        sys.exit(0)
 
     # global catch
-    except Exception as ex:
-        print "Global exception caught in prerelease script!."
-        sys.exit(-1)
+    except BuildException as ex:
+        print ex.msg
 
+    else:
+        print "Prerelease Test Failed. Check out the console output above for details."
+
+    print
+    print "==========================================================================="
+    print "====== End of prerelease script. Ignore the output below =================="
+    print "==========================================================================="
+    print
+    sys.exit(-1)

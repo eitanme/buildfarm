@@ -22,8 +22,8 @@ def main():
     params['SCRIPT'] = sys.argv[5]
 
     # open template xlm file
-    with open('jenkins_template.xml') as f:
-        job_xml = f.read()
+    f = urllib.urlopen('https://raw.github.com/willowgarage/buildfarm/master/jenkins_template.xml')
+    job_xml = f.read()
 
     # replace @xxx@ in template file
     for key, value in params.iteritems():
@@ -42,6 +42,8 @@ def main():
     else:
         jenkins_instance.create_job(job_name, job_xml)
         print "Created job %s"%job_name
+    jenkins_instance.build_job(job_name)
+    print "Started job %s"%job_name
 
 if __name__ == "__main__":
     main()
