@@ -137,7 +137,7 @@ def main():
     envbuilder = 'source /opt/ros/%s/setup.bash'%ros_distro
 
     # Add ros to apt
-    print "Add ros stuff to apt"
+    print "Add ros to apt sources"
     with open('/etc/apt/sources.list.d/ros-latest.list', 'w') as f:
         f.write("deb http://packages.ros.org/ros/ubuntu %s main"%os.environ['OS_PLATFORM'])
     call("apt-get update")
@@ -151,6 +151,7 @@ def main():
     # parse the rosdistro file
     print "Parsing rosdistro file for %s"%ros_distro
     distro = rosdistro.Rosdistro(ros_distro)
+    print "Resolve all entries in the rosdistro file to ros packages"
     stack_to_apt = {}
     for d in distro._repoinfo.keys():
         stack_to_apt[d] = rosdep_to_apt(d)
