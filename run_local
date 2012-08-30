@@ -15,7 +15,7 @@ export SCRIPT=$5
 
 
 # get extra arguments of script
-cnt=0
+cnt=1
 SCRIPT_ARGS=""
 for i in $*
 do
