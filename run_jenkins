@@ -28,7 +28,6 @@ def main():
     # replace @xxx@ in template file
     for key, value in params.iteritems():
         job_xml = job_xml.replace("@%s@"%key, value)
-    print "Resulting xml: \n%s"%job_xml
 
     # create hudson instance                                                                                                            
     info = urllib.urlopen(CONFIG_PATH).read().split(',')
