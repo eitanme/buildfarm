@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
-if [ $# -lt 5 ] ;  then
-  echo "Usage: run_local ros_distro ubuntu_distro arch workspace script [script_args]"
+if [ $# -lt 4 ] ;  then
+  echo "Usage: run_local ubuntu_distro arch workspace script [script_args]"
   exit
 fi
 
 # get arguments of run_local
-export ROSDISTRO_NAME=$1
-export ROS_DISTRO=$1
-export UBUNTU_DISTRO=$2
-export OS_PLATFORM=$2
-export ARCH=$3
-export WORKSPACE=$4
-export SCRIPT=$5
+export UBUNTU_DISTRO=$1
+export OS_PLATFORM=$1
+export ARCH=$2
+export WORKSPACE=$3
+export SCRIPT=$4
 
 
 # get extra arguments of script
@@ -19,7 +17,7 @@ cnt=1
 SCRIPT_ARGS=""
 for i in $*
 do
-  if [ $cnt -gt 5 ] ; then
+  if [ $cnt -gt 4 ] ; then
     SCRIPT_ARGS=`echo $SCRIPT_ARGS $i`
   fi
   cnt=$(($cnt+1))
@@ -28,10 +26,8 @@ done
 export OS_NAME="ubuntu"
 export JOB_TYPE="catkin"
 export IMAGETYPE="all"
-export ROS_TEST_RESULTS_DIR=$WORKSPACE/build/test_results
 
 
-echo "  - ros distro:    " $ROS_DISTRO
 echo "  - ubuntu distro: " $UBUNTU_DISTRO
 echo "  - architecture:  " $ARCH
 echo "  - script:        " $SCRIPT

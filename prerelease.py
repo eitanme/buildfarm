@@ -121,15 +121,16 @@ def main():
     print "==========================================================================="
     print
 
-    if len(sys.argv) <= 1:
-        print "Usage: %s stack_name"%sys.argv[0]
+    if len(sys.argv) <= 2:
+        print "Usage: %s ros_distro stack_name"%sys.argv[0]
         raise BuildException("Wrong number of parameters for prerelase script")
     else:
-        stack = sys.argv[1]
-        print "Working on stack %s"%stack
+        ros_distro = sys.argv[1]
+        stack = sys.argv[2]
+        print "Working on distro %s and stack %s"%(ros_distro, stack)
 
     buildspace = workspace + '/tmp/'  # should become '/tmp/'
-    envbuilder = 'source /opt/ros/%s/setup.bash'%os.environ['ROSDISTRO_NAME']
+    envbuilder = 'source /opt/ros/%s/setup.bash'%ros_distro
 
     # Add ros to apt
     print "Add ros stuff to apt"
@@ -144,8 +145,8 @@ def main():
     call("rosdep update")
 
     # parse the rosdistro file
-    print "Parsing rosdistro file for %s"%os.environ['ROSDISTRO_NAME']
-    distro = rosdistro.Rosdistro(os.environ['ROSDISTRO_NAME'])
+    print "Parsing rosdistro file for %s"%ros_distro
+    distro = rosdistro.Rosdistro(ros_distro)
     stack_to_apt = {}
     for d in distro._repoinfo.keys():
         stack_to_apt[d] = rosdep_to_apt(d)
