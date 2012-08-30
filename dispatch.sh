@@ -7,6 +7,7 @@ for i in $*
   do 
   SCRIPT_ARGS=`echo $SCRIPT_ARGS $i`
 done
+echo "Arguments for script: " $SCRIPT_ARGS
 
 #always ask for pbuilder to make sure we have the updated patched version
 sudo apt-get update
