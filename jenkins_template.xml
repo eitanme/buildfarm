@@ -39,7 +39,7 @@ echo &quot;_________________________________END SCRIPT__________________________
       <testDataPublishers/>
     </hudson.tasks.junit.JUnitResultArchiver>
     <hudson.tasks.Mailer>
-      <recipients>wim@hidof.com</recipients>
+      <recipients>@EMAIL@</recipients>
       <dontNotifyEveryUnstableBuild>false</dontNotifyEveryUnstableBuild>
       <sendToIndividuals>false</sendToIndividuals>
     </hudson.tasks.Mailer>
