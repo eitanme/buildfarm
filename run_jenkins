@@ -4,6 +4,7 @@ import sys
 import jenkins
 import urllib
 
+CONFIG_PATH_LOCAL = '/home/willow/hds.xml'
 CONFIG_PATH = 'http://wgs24.willowgarage.com/hudson-html/hds.xml'
 SERVER = 'http://jenkins.willowgarage.com:8080/'
 
@@ -29,7 +30,11 @@ def main():
         job_xml = job_xml.replace("@%s@"%key, value)
 
     # create hudson instance                                                                                                            
-    info = urllib.urlopen(CONFIG_PATH).read().split(',')
+    try:
+        with open(CONFIG_PATH_LOCAL) as f:
+            info = f.read().split(',')
+    except:
+        info = urllib.urlopen(CONFIG_PATH).read().split(',')
     jenkins_instance = jenkins.Jenkins(SERVER, info[0], info[1])
     
     # schedule a new job
