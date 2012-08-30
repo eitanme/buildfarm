@@ -49,6 +49,38 @@ class AptDepends:
 
 
 
+class RosDep:
+    def __init__(self, ros_distro):
+        self.r2a = {}
+        self.a2r = {}
+        self.env = os.environ
+        self.env['ROS_DISTRO'] = ros_distro
+
+        # Initialize rosdep database
+        print "Ininitalize rosdep database"
+        call("apt-get install --yes lsb-release python-rosdep")
+        call("rosdep init", self.env)
+        call("rosdep update", self.env)
+
+    def to_apt(self, r):
+        if r in self.r2a:
+            return self.r2a[r]
+        else:
+            a = call("rosdep resolve %s"%r, self.env).split('\n')[1]
+            print "Rosdep %s resolved into %s"%(r, a)
+            self.r2a[r] = a
+            self.a2r[a] = r
+            return a
+
+    def to_stack(self, a):
+        if not a in self.a2r:
+            print "%s not in apt-to-rosdep cache"%a
+        return self.a2r[a]
+
+
+
+
+
 
 def call(command, envir=None):
     print "Executing command '%s'"%command
@@ -61,14 +93,6 @@ def call(command, envir=None):
         print "/!\  %s"%msg
         raise BuildException(msg)
     return res
-
-
-def rosdep_to_apt(rosdep):
-    env = os.environ
-    env['ROS_DISTRO'] = 'fuerte'
-    apt = call("rosdep resolve %s"%rosdep, env).split('\n')[1]
-    print "Rosdep %s resolved into %s"%(rosdep, apt)
-    return apt
 
 
 def ensure_dir(f):
@@ -116,12 +140,13 @@ def main():
         raise BuildException("Wrong number of parameters for prerelase script")
     else:
         ros_distro = sys.argv[1]
-        stack = sys.argv[2]
-        print "Working on distro %s and stack %s"%(ros_distro, stack)
+        stacks = sys.argv[2:]
+        print "Working on distro %s and stacks %s"%(ros_distro, ', '.join(stacks))
 
     workspace = os.environ['WORKSPACE']
-    buildspace = '/tmp/'
-    envbuilder = 'source /opt/ros/%s/setup.bash'%ros_distro
+    buildspace = workspace + '/tmp/'
+    stackbuildspace = buildspace + '/build_stack'
+    dependbuildspace = buildspace + '/build_depend_on'
 
     # Add ros to apt
     print "Add ros to apt sources"
@@ -131,119 +156,109 @@ def main():
     call("apt-key add %s/ros.key"%workspace)
     call("apt-get update")
 
-    # Initialize rosdep database
-    print "Ininitalize rosdep database"
-    call("apt-get install --yes lsb-release python-rosdep")
-    call("rosdep init")
-    call("rosdep update")
+    # Create rosdep object
+    print "Create rosdep object"
+    rosdep = RosDep(ros_distro)
+    stacks_apt = [rosdep.to_apt(s) for s in stacks]
 
     # parse the rosdistro file
     print "Parsing rosdistro file for %s"%ros_distro
     distro = rosdistro.Rosdistro(ros_distro)
-    print "Resolve all entries in the rosdistro file to ros packages"
-    stack_to_apt = {}
+    # print "Resolve all entries in the rosdistro file to ros packages"
+    distro_apt = []
     for d in distro._repoinfo.keys():
-        stack_to_apt[d] = rosdep_to_apt(d)
-    apt_to_stack = {}
-    for s, a in stack_to_apt.iteritems():
-        apt_to_stack[a] = s
+        distro_apt.append(rosdep.to_apt(d))
 
-    # download the stack from source
-    print "Downloading stack %s"%stack
-    if not stack in distro._repoinfo.keys():
-        print "Stack %s does not exist in Rosdistro"%stack
-        return False
+    # download the stacks from source
+    print "Downloading all stacks"
+    rosinstall = ""
+    for stack in stacks:
+        print "Finding repo for stack %s"%stack
+        if not stack in distro._repoinfo.keys():
+            raise BuildException("Stack %s does not exist in Rosdistro"%stack)
+        ri= yaml.dump([{'git': {'local-name': stack, 'uri': distro._repoinfo[stack].url, 'version': 'master'}}], default_style=False)
+        print "Rosinstall for stack %s:\n %s"%(stack, ri)
+        rosinstall += ri
     with open(workspace+"/stack.rosinstall", 'w') as f:
-        rosinstall = yaml.dump([{'git': {'local-name': stack, 'uri': distro._repoinfo[stack].url, 'version': 'master'}}], default_style=False)
-        print "Rosinstall for stack %s:\n %s"%(stack, rosinstall)
         f.write(rosinstall)
-    print "Create rosinstall file for stack %s"%stack
+    print "Create rosinstall file for stacks %s"%(', '.join(stacks))
     call("rosinstall %s %s/stack.rosinstall --catkin"%(buildspace, workspace))
 
-
     # get the stack dependencies
-    dependencies = get_dependencies(buildspace + stack)
+    print "Get all stack dependencies"
+    dependencies = []
+    for stack in stacks:
+        dep = get_dependencies(buildspace + stack)
+        for d in dep:
+            if not d in dependencies and not d in stacks:
+                dependencies.append(d)
     if len(dependencies) > 0:
-        print "Install all dependencies of stack %s: %s"%(stack,' '.join(dependencies))
-        call("apt-get install %s --yes"%(' '.join([rosdep_to_apt(r) for r in dependencies])))
+        print "Install all dependencies of stacks: %s"%(', '.join(dependencies))
+        call("apt-get install %s --yes"%(' '.join([rosdep.to_apt(r) for r in dependencies])))
 
-    # get the build environment
+
+    # get the ros build environment
+    print "Retrieve the ROS build environment by sourcing /opt/ros/%s/setup.bask"%ros_distro
     build_env = {}
-    command = ['bash', '-c', '%s && env'%envbuilder]
+    command = ['bash', '-c', 'source /opt/ros/%s/setup.bash && env'%ros_distro]
     proc = subprocess.Popen(command, stdout = subprocess.PIPE)
     for line in proc.stdout:
         (key, _, value) = line.partition("=")
         build_env[key] = value
     proc.communicate()
 
-    # build stack
-    stackbuildspace = buildspace + '/build_stack'
-    print "Creating build folder"
+    # build stacks
+    print "Configure, build and test stacks"
     os.mkdir(stackbuildspace)
     os.chdir(stackbuildspace)
-    print "Configure cmake"
     call("cmake ..", build_env)
-    print "Building and testing stack"
     call("make", build_env)
     call("make -k test", build_env)
 
     # get stack depends-on list
     print "Get list of stacks that depend on %s"%stack
     apt = AptDepends(os.environ['OS_PLATFORM'], os.environ['ARCH'])
-    depends_on = apt.depends_on(stack_to_apt[stack])
-    print "Depends_on list for stack %s: %s"%(stack, str(depends_on))
-    print "Select all wet stacks from depends_on list"
-    depends_on_wet = [d for d in depends_on if d in apt_to_stack.keys()]
-    print "Wet depends_on list for stack %s: %s"%(stack, str(depends_on_wet))
+    depends_on_apt = []
+    depends_on = []
+    for stack_apt in stacks_apt:
+        for d in apt.depends_on(stack_apt):
+            if not d in depends_on_apt and not d in stacks_apt and d in distro_apt:
+                depends_on_apt.append(d)
+                depends_on.append(rosdep.to_stack(d))
+    print "Depends_on list for stacks: %s"%(', '.join(depends_on))
 
-    # install wet depends_on stacks from source
+    # install depends_on stacks from source
+    rosinstall = yaml.dump([{'git': {'local-name': stack, 'uri': distro._repoinfo[stack].url, 'version': 'master'}} for stack in depends_on], default_style=False)
+    print "Rosinstall for depends_on:\n %s"%rosinstall
     with open(workspace+"/depends_on.rosinstall", 'w') as f:
-        rosinstall = yaml.dump([{'git': {'local-name': stack, 'uri': distro._repoinfo[stack].url, 'version': 'master'}} for stack in [apt_to_stack[a] for a in depends_on_wet]], default_style=False)
-        print "Rosinstall for wet depends_on:\n %s"%rosinstall
         f.write(rosinstall)
-    print "Create rosinstall file for wet depends on"
+    print "Create rosinstall file for depends on"
     call("rosinstall --catkin %s %s/depends_on.rosinstall"%(buildspace, workspace))
-    
-    # list of packages we won't install from apt
-    #no_apt_list = apt.depends(stack_to_apt[stack]) # skip the apt dependencies of the stack, they might have changed
-    no_apt_list = []
-    no_apt_list.append(stack_to_apt[stack])
-    for d in depends_on_wet:
-        no_apt_list.append(d)
-    print "List of packages we won't install from apt: %s"%(' '.join(no_apt_list))
 
-    # install all stack and system dependencies of the wet depends_on list
-    print "Install all dependencies of the wet depends_on list"
+    # install all stack and system dependencies of the depends_on list
+    print "Install all dependencies of the depends_on list"
     res = []
-    for s in [apt_to_stack[a] for a in depends_on_wet]:
+    for s in depends_on:
         dep = get_dependencies(buildspace + s)
         for d in dep:
             if not d in res:
                 res.append(d)
 
     res_apt = []
-    for d_apt in [rosdep_to_apt(d) for d in res]:
-        if not d_apt in no_apt_list:
+    for d_apt in [rosdep.to_apt(d) for d in res]:
+        if not d_apt in stacks_apt and not d_apt in depends_on_apt:
             res_apt.append(d_apt)
-    print "Dependencies of wet depends_on list are %s"%str(res_apt)
+    print "Dependencies of depends_on list are %s"%(', '.join(res_apt))
     call("apt-get install --yes %s"%(' '.join(res_apt)))
 
 
-
-    # build wet depend_on stacks
-    dependbuildspace = buildspace + '/build_depend_on'
-    print "Creating build folder"
+    # build depend_on stacks
+    print "Configure, build and test depend_on stacks"
     os.mkdir(dependbuildspace)
     os.chdir(dependbuildspace)
-    print "Configure cmake"
     call("cmake ..", build_env)
-    print "Building and testing stack"
     call("make", build_env)
     call("make -k test", build_env)
-
-
-    return True
-
 
 
 
