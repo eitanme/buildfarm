@@ -34,7 +34,7 @@ def main():
     
     # schedule a new job
     job_name = sys.argv[1]
-    job_name = "%s-%s-%s-%s-%s"%(params['SCRIPT'], job_name, params['UBUNTU_DISTRO'], params['ARCH'])
+    job_name = "%s-%s-%s-%s"%(params['SCRIPT'], job_name, params['UBUNTU_DISTRO'], params['ARCH'])
     if jenkins_instance.job_exists(job_name):
         jenkins_instance.reconfig_job(job_name, job_xml)
         print "Reconfigured job %s"%job_name
