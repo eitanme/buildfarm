@@ -13,44 +13,8 @@ echo "Arguments for script: " $SCRIPT_ARGS
 sudo apt-get update
 sudo apt-get -y install pbuilder
 
-export WORKSPACE
 
-if [ -z "$WORKSPACE" ] ; then
-    /bin/echo "Uh, workspace not set."
-    exit 1
-fi
-
-# The new way is to set SCRIPT, along with some other important
-# variables.  The old way is to infer that stuff from JOB_NAME.
-if [[ -z "$SCRIPT" ]]; then
-  # Old way
-  /bin/echo "IF you fail here your job name is corrupt."
-  /bin/echo "Format:"
-  /bin/echo "some-script-name.IMAGETYPE.UBUNTUCODENAME.ARCH"
-  
-  [[ $JOB_NAME =~ ([^\.]+)\.([^\.]+)\.([^\.]+)\.([^\.]+) ]]
-  SCRIPT=${BASH_REMATCH[1]}.sh
-  IMAGETYPE=${BASH_REMATCH[2]}
-  UBUNTU_DISTRO=${BASH_REMATCH[3]}
-  ARCH=${BASH_REMATCH[4]}
-
-  /bin/echo <<EOF
-  SCRIPT=$SCRIPT
-  IMAGETYPE=$IMAGETYPE
-  UBUNTU_DISTRO=$UBUNTU_DISTRO
-  ARCH=$ARCH
-EOF
-
-  # TODO: WHERE IS THIS USED????
-  # if [[ $SCRIPT =~ ^([^_]+)_([^_]+)$ ]] ; then
-  #     SCRIPT=${BASH_REMATCH[1]}
-  #     SCRIPTARGS=${BASH_REMATCH[2]}
-  # fi
-fi
-
-#
 #  update buildfarm utils
-#
 cd $WORKSPACE
 if [ -d buildfarm ] ; then
   cd buildfarm
@@ -84,19 +48,16 @@ cat > pbuilder-env.sh <<EOF
 /bin/echo "vvvvvvvvvvvvvvvvvvv  pbuilder-env.sh vvvvvvvvvvvvvvvvvvvvvv"
 export CCACHE_DIR="/var/cache/pbuilder/ccache"
 export PATH="/usr/lib/ccache:${PATH}"
-export WORKSPACE=$WORKSPACE
-export UBUNTU_DISTRO=$UBUNTU_DISTRO
-export ARCH=$ARCH
 export IMAGETYPE=$IMAGETYPE
-export ROSDISTRO_NAME=$ROSDISTRO_NAME
+
 export OS_NAME=$OS_NAME
 export OS_PLATFORM=$OS_PLATFORM
-export STACK_XML_URL=$STACK_XML_URL
-export STACK_BUILD_DEPENDS="$STACK_BUILD_DEPENDS"
-export ROSINSTALL_URL=$ROSINSTALL_URL
-export ROS_TEST_RESULTS_DIR=$ROS_TEST_RESULTS_DIR
-export JOB_TYPE=$JOB_TYPE
+export UBUNTU_DISTRO=$UBUNTU_DISTRO
+export ARCH=$ARCH
+
+export WORKSPACE=$WORKSPACE
 export PYTHONPATH=$WORKSPACE/catkin-debs/src/buildfarm
+
 if [ -d \$HOME/.ssh ]; then
   cp -a \$HOME/.ssh /root
   chown -R root.root /root/.ssh

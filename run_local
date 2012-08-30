@@ -4,13 +4,15 @@ if [ $# -lt 4 ] ;  then
   exit
 fi
 
+export OS_NAME="ubuntu"
+export IMAGETYPE="all"
+
 # get arguments of run_local
 export UBUNTU_DISTRO=$1
 export OS_PLATFORM=$1
 export ARCH=$2
 export WORKSPACE=$3
 export SCRIPT=$4
-
 
 # get extra arguments of script
 cnt=1
@@ -23,11 +25,7 @@ do
   cnt=$(($cnt+1))
 done
 
-export OS_NAME="ubuntu"
-export JOB_TYPE="catkin"
-export IMAGETYPE="all"
-
-
+# print arguments
 echo "  - ubuntu distro: " $UBUNTU_DISTRO
 echo "  - architecture:  " $ARCH
 echo "  - script:        " $SCRIPT
