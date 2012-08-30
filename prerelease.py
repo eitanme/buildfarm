@@ -59,7 +59,6 @@ def call(command, envir=None):
     if helper.returncode != 0:
         msg = "Failed to execute command '%s'"%command
         print "/!\  %s"%msg
-        generate_xml(msg, str(res), str(err))
         raise BuildException(msg)
     return res
 
@@ -76,18 +75,6 @@ def ensure_dir(f):
     d = os.path.dirname(f)
     if not os.path.exists(d):
         os.makedirs(d)
-
-def generate_xml(msg, stdout, stderr):
-    # open template xlm file
-    with open('%s/buildfarm/junit_ouput_template.xml'%workspace) as f:
-        result_xml = f.read()
-    result_xml = result_xml.replace('@MSG@', msg)
-
-    # write resulting file
-    xml_file = '%s/xml_output/jenkins_failure.xml'%workspace
-    ensure_dir(xml_file)
-    with open(xml_file, 'w') as f:
-        f.write(result_xml)
 
 
 def get_dependencies(stack_folder):
@@ -112,7 +99,6 @@ class BuildException(Exception):
 
 
 
-workspace = os.environ['WORKSPACE']
 
 def main():
     print
@@ -133,18 +119,21 @@ def main():
         stack = sys.argv[2]
         print "Working on distro %s and stack %s"%(ros_distro, stack)
 
-    buildspace = workspace + '/tmp/'  # should become '/tmp/'
+    workspace = os.environ['WORKSPACE']
+    buildspace = '/tmp/'
     envbuilder = 'source /opt/ros/%s/setup.bash'%ros_distro
 
     # Add ros to apt
     print "Add ros to apt sources"
     with open('/etc/apt/sources.list.d/ros-latest.list', 'w') as f:
         f.write("deb http://packages.ros.org/ros/ubuntu %s main"%os.environ['OS_PLATFORM'])
+    call("wget http://packages.ros.org/ros.key -O %s/ros.key"%workspace)
+    call("apt-key add %s/ros.key"%workspace)
     call("apt-get update")
 
     # Initialize rosdep database
     print "Ininitalize rosdep database"
-    call("apt-get install --yes --force-yes lsb-release python-rosdep")
+    call("apt-get install --yes lsb-release python-rosdep")
     call("rosdep init")
     call("rosdep update")
 
@@ -176,7 +165,7 @@ def main():
     dependencies = get_dependencies(buildspace + stack)
     if len(dependencies) > 0:
         print "Install all dependencies of stack %s: %s"%(stack,' '.join(dependencies))
-        call("apt-get install %s --yes --force-yes"%(' '.join([rosdep_to_apt(r) for r in dependencies])))
+        call("apt-get install %s --yes"%(' '.join([rosdep_to_apt(r) for r in dependencies])))
 
     # get the build environment
     build_env = {}
@@ -237,7 +226,7 @@ def main():
         if not d_apt in no_apt_list:
             res_apt.append(d_apt)
     print "Dependencies of wet depends_on list are %s"%str(res_apt)
-    call("apt-get install --yes --force-yes %s"%(' '.join(res_apt)))
+    call("apt-get install --yes %s"%(' '.join(res_apt)))
 
 
 
