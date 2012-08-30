@@ -27,7 +27,7 @@
 echo &quot;_________________________________BEGIN SCRIPT______________________________________&quot;
 wget https://raw.github.com/willowgarage/buildfarm/master/run_local -O $WORKSPACE/run_local
 cd $WORKSPACE
-bash run_local @STACK@ @ROS_DISTRO@ @UBUNTU_DISTRO@ @ARCH@ @SCRIPT@ $WORKSPACE
+bash run_local @ROS_DISTRO@ @UBUNTU_DISTRO@ @ARCH@ $WORKSPACE @SCRIPT@ @SCRIPT_ARGS@
 echo &quot;_________________________________END SCRIPT_______________________________________&quot;
      </command>
     </hudson.tasks.Shell>

@@ -1,6 +1,13 @@
 set -ex
 /bin/echo "vvvvvvvvvvvvvvvvvvv  dispatch.sh vvvvvvvvvvvvvvvvvvvvvv"
 
+# pass all arguments to the dispatcher on to the script we're running
+SCRIPT_ARGS=""
+for i in $*
+  do 
+  SCRIPT_ARGS=`echo $SCRIPT_ARGS $i`
+done
+
 #always ask for pbuilder to make sure we have the updated patched version
 sudo apt-get update
 sudo apt-get -y install pbuilder
@@ -33,10 +40,11 @@ if [[ -z "$SCRIPT" ]]; then
   ARCH=$ARCH
 EOF
 
-  if [[ $SCRIPT =~ ^([^_]+)_([^_]+)$ ]] ; then
-      SCRIPT=${BASH_REMATCH[1]}
-      SCRIPTARGS=${BASH_REMATCH[2]}
-  fi
+  # TODO: WHERE IS THIS USED????
+  # if [[ $SCRIPT =~ ^([^_]+)_([^_]+)$ ]] ; then
+  #     SCRIPT=${BASH_REMATCH[1]}
+  #     SCRIPTARGS=${BASH_REMATCH[2]}
+  # fi
 fi
 
 #
@@ -82,7 +90,6 @@ export IMAGETYPE=$IMAGETYPE
 export ROSDISTRO_NAME=$ROSDISTRO_NAME
 export OS_NAME=$OS_NAME
 export OS_PLATFORM=$OS_PLATFORM
-export STACK_NAME=$STACK_NAME
 export STACK_XML_URL=$STACK_XML_URL
 export STACK_BUILD_DEPENDS="$STACK_BUILD_DEPENDS"
 export ROSINSTALL_URL=$ROSINSTALL_URL
@@ -102,7 +109,7 @@ ls -l
 cd $WORKSPACE
 ls -l
 chmod 755 $WORKSPACE/buildfarm/${SCRIPT}
-exec $WORKSPACE/buildfarm/${SCRIPT} ${SCRIPTARGS}
+exec $WORKSPACE/buildfarm/${SCRIPT} ${SCRIPT_ARGS}
 EOF
 
 chmod 755 pbuilder-env.sh

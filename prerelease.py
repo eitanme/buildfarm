@@ -121,6 +121,13 @@ def main():
     print "==========================================================================="
     print
 
+    if len(sys.argv) <= 1:
+        print "Usage: %s stack_name"%sys.argv[0]
+        raise BuildException("Wrong number of parameters for prerelase script")
+    else:
+        stack = sys.argv[1]
+        print "Working on stack %s"%stack
+
     buildspace = workspace + '/tmp/'  # should become '/tmp/'
     envbuilder = 'source /opt/ros/%s/setup.bash'%os.environ['ROSDISTRO_NAME']
 
@@ -147,7 +154,6 @@ def main():
         apt_to_stack[a] = s
 
     # download the stack from source
-    stack = os.environ['STACK_NAME']
     print "Downloading stack %s"%stack
     if not stack in distro._repoinfo.keys():
         print "Stack %s does not exist in Rosdistro"%stack
