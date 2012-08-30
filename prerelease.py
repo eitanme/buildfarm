@@ -116,9 +116,13 @@ workspace = os.environ['WORKSPACE']
 
 def main():
     print
-    print "==========================================================================="
-    print "======================== PRERELEASE SCRIPT ================================"
-    print "==========================================================================="
+    print
+    print
+    print "============================================================"
+    print "==== Begin prerelease script.  Ignore the output above ====="
+    print "============================================================"
+    print
+    print
     print
 
     if len(sys.argv) <= 2:
@@ -267,8 +271,13 @@ if __name__ == '__main__':
         print "Prerelease Test Failed. Check out the console output above for details."
 
     print
-    print "==========================================================================="
-    print "====== End of prerelease script. Ignore the output below =================="
-    print "==========================================================================="
     print
+    print
+    print "============================================================"
+    print "==== End of prerelease script. Ignore the output below ====="
+    print "============================================================"
+    print
+    print
+    print
+
     sys.exit(-1)
