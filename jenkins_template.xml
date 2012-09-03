@@ -19,7 +19,7 @@
   <canRoam>false</canRoam>
   <disabled>false</disabled>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
-  <triggers class="vector"/>
+  @TRIGGER@
   <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>

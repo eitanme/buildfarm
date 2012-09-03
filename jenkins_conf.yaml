@@ -1,0 +1,14 @@
+'triggers:
+  'none': '<triggers class="vector"/>'
+  'periodic': 
+    'continuous': ' <triggers class="vector"> <hudson.triggers.TimerTrigger> <spec>*/5 * * * *</spec> </hudson.triggers.TimerTrigger> </triggers>'
+    'nightly': ' <triggers class="vector"> <hudson.triggers.TimerTrigger> <spec>1 23 * * *</spec> </hudson.triggers.TimerTrigger> </triggers>'
+    'daily': ' <triggers class="vector"> <hudson.triggers.TimerTrigger> <spec>12 34 * * *</spec> </hudson.triggers.TimerTrigger> </triggers>'
+    'weekly': ' <triggers class="vector"> <hudson.triggers.TimerTrigger> <spec>1 23 * * 0</spec> </hudson.triggers.TimerTrigger> </triggers>'
+    'monthly': ' <triggers class="vector"> <hudson.triggers.TimerTrigger> <spec>1 23 1 * *</spec> </hudson.triggers.TimerTrigger> </triggers>'
+
+'scm':
+  'svn': '<scm class="hudson.scm.SubversionSCM"> <locations> <hudson.scm.SubversionSCM_-ModuleLocation><remote>@URI@</remote> <local>@LOCAL_NAME@</local> </hudson.scm.SubversionSCM_-ModuleLocation> </locations> <useUpdate>false</useUpdate> <doRevert>false</doRevert> <excludedRegions/> <includedRegions/> <excludedUsers/> <excludedRevprop/> <excludedCommitMessages/> </scm>'
+  'hg': '<scm class="hudson.plugins.mercurial.MercurialSCM"> <source>@URI@</source> <modules/> <subdir>@LOCAL_NAME@</subdir> <clean>false</clean> <forest>false</forest> <branch>@BRANCH@</branch> </scm>'
+
+
