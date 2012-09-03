@@ -11,14 +11,14 @@ SERVER = 'http://jenkins.willowgarage.com:8080/'
 # Schedule a set of jobs in Jenkins
 def main():
     if len(sys.argv) < 6:
-        print "Usage: %s job_name email ubuntu_distro arch script [script_args]"%(sys.argv[0])
+        print "Usage: %s ubuntu_distro arch job_name email script [script_args]"%(sys.argv[0])
         sys.exit(0)
     
     # get arguments
     params = {}
-    params['EMAIL'] = sys.argv[2]
-    params['UBUNTU_DISTRO'] = sys.argv[3]
-    params['ARCH'] = sys.argv[4]
+    params['UBUNTU_DISTRO'] = sys.argv[1]
+    params['ARCH'] = sys.argv[2]
+    params['EMAIL'] = sys.argv[4]
     params['SCRIPT'] = sys.argv[5]
     params['SCRIPT_ARGS'] = ' '.join(sys.argv[6:])
 
@@ -39,7 +39,7 @@ def main():
     jenkins_instance = jenkins.Jenkins(SERVER, info[0], info[1])
     
     # schedule a new job
-    job_name = sys.argv[1]
+    job_name = sys.argv[3]
     job_name = "%s-%s-%s-%s"%(params['SCRIPT'], job_name, params['UBUNTU_DISTRO'], params['ARCH'])
     if jenkins_instance.job_exists(job_name):
         jenkins_instance.reconfig_job(job_name, job_xml)
