@@ -139,7 +139,6 @@ def main():
         print "Install all dependencies of stacks: %s"%(', '.join(dependencies))
         call("apt-get install %s --yes"%(' '.join([rosdep.to_apt(r) for r in dependencies])))
 
-    raise
     # get the ros build environment
     print "Retrieve the ROS build environment by sourcing /opt/ros/%s/setup.bask"%ros_distro
     build_env = {}
@@ -150,58 +149,14 @@ def main():
         build_env[key] = value
     proc.communicate()
 
-    # build stacks
-    print "Configure, build and test stacks"
+    # build stack
+    print "Configure, build and test stack"
     os.makedirs(stackbuildspace)
     os.chdir(stackbuildspace)
     call("cmake ..", build_env)
     call("make", build_env)
     call("make -k test", build_env)
 
-    # get stack depends-on list
-    print "Get list of stacks that depend on %s"%stack
-    apt = AptDepends(os.environ['OS_PLATFORM'], os.environ['ARCH'])
-    depends_on_apt = []
-    depends_on = []
-    for stack_apt in stacks_apt:
-        for d in apt.depends_on(stack_apt):
-            if not d in depends_on_apt and not d in stacks_apt and d in distro_apt:
-                depends_on_apt.append(d)
-                depends_on.append(rosdep.to_stack(d))
-    print "Depends_on list for stacks: %s"%(', '.join(depends_on))
-
-    # install depends_on stacks from source
-    rosinstall = yaml.dump([{'git': {'local-name': stack, 'uri': distro._repoinfo[stack].url, 'version': 'master'}} for stack in depends_on], default_style=False)
-    print "Rosinstall for depends_on:\n %s"%rosinstall
-    with open(workspace+"/depends_on.rosinstall", 'w') as f:
-        f.write(rosinstall)
-    print "Create rosinstall file for depends on"
-    call("rosinstall --catkin %s %s/depends_on.rosinstall"%(buildspace, workspace))
-
-    # install all stack and system dependencies of the depends_on list
-    print "Install all dependencies of the depends_on list"
-    res = []
-    for s in depends_on:
-        dep = get_dependencies(os.path.join(buildspace, s))
-        for d in dep:
-            if not d in res:
-                res.append(d)
-
-    res_apt = []
-    for d_apt in [rosdep.to_apt(d) for d in res]:
-        if not d_apt in stacks_apt and not d_apt in depends_on_apt:
-            res_apt.append(d_apt)
-    print "Dependencies of depends_on list are %s"%(', '.join(res_apt))
-    call("apt-get install --yes %s"%(' '.join(res_apt)))
-
-
-    # build depend_on stacks
-    print "Configure, build and test depend_on stacks"
-    os.makedirs(dependbuildspace)
-    os.chdir(dependbuildspace)
-    call("cmake ..", build_env)
-    call("make", build_env)
-    call("make -k test", build_env)
 
 
 
