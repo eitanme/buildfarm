@@ -15,7 +15,7 @@
     </hudson.plugins.trac.TracProjectProperty>
   </properties>
   <scm class="hudson.scm.NullSCM"/>
-  <assignedNode>prerelease</assignedNode>
+  <assignedNode>@NODE@</assignedNode>
   <canRoam>false</canRoam>
   <disabled>false</disabled>
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>

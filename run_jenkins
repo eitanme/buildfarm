@@ -20,6 +20,7 @@ def main():
     params['ARCH'] = sys.argv[2]
     params['EMAIL'] = sys.argv[4]
     params['SCRIPT'] = sys.argv[5]
+    params['NODE'] = params['SCRIPT']
     params['SCRIPT_ARGS'] = ' '.join(sys.argv[6:])
 
     # open template xlm file
