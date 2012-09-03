@@ -10,4 +10,5 @@
 'vcs':
   'none' : '<scm class="hudson.scm.NullSCM"/>'
   'svn' : '<scm class="hudson.scm.SubversionSCM"><locations><hudson.scm.SubversionSCM_-ModuleLocation><remote>@URI@</remote><local>monitored_vcs</local></hudson.scm.SubversionSCM_-ModuleLocation></locations><useUpdate>false</useUpdate><doRevert>false</doRevert><excludedRegions/><includedRegions/><excludedUsers/><excludedRevprop/><excludedCommitMessages/></scm>'
-  'hg' : ''
+  'hg' : '<scm class="hudson.plugins.mercurial.MercurialSCM"><source>@URI@</source><modules/><subdir>monitored_vcs</subdir><clean>false</clean><forest>false</forest><branch>@BRANCH@</branch>
+</scm>'
