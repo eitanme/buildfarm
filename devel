@@ -120,7 +120,7 @@ def main():
     f = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s-devel.yaml'%ros_distro)
     devel = yaml.load(f.read())['repositories']
 
-    # download the stacks from source
+    # download the stack from source
     print "Downloading stack %s"%stack
     if not stack in devel.keys():
         raise BuildException("Stack %s does not exist in devel distro file"%stack)

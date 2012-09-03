@@ -1,4 +1,4 @@
-'triggers:
+'triggers':
   'none': '<triggers class="vector"/>'
   'periodic': 
     'continuous': ' <triggers class="vector"> <hudson.triggers.TimerTrigger> <spec>*/5 * * * *</spec> </hudson.triggers.TimerTrigger> </triggers>'
@@ -6,4 +6,5 @@
     'daily': ' <triggers class="vector"> <hudson.triggers.TimerTrigger> <spec>12 34 * * *</spec> </hudson.triggers.TimerTrigger> </triggers>'
     'weekly': ' <triggers class="vector"> <hudson.triggers.TimerTrigger> <spec>1 23 * * 0</spec> </hudson.triggers.TimerTrigger> </triggers>'
     'monthly': ' <triggers class="vector"> <hudson.triggers.TimerTrigger> <spec>1 23 1 * *</spec> </hudson.triggers.TimerTrigger> </triggers>'
+  'vcs': '<triggers class="vector"> <hudson.triggers.SCMTrigger> <spec>*/5 * * * *</spec> </hudson.triggers.SCMTrigger> </triggers>'
 

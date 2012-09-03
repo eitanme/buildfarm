@@ -11,8 +11,8 @@ SERVER = 'http://jenkins.willowgarage.com:8080/'
 
 # Schedule a set of jobs in Jenkins
 def main():
-    if len(sys.argv) < 6:
-        print "Usage: %s ubuntu_distro arch job_name email script [script_args]"%(sys.argv[0])
+    if len(sys.argv) < 7:
+        print "Usage: %s ubuntu_distro arch job_name email {continuous/nightly/daily/weekly/monthly} script [script_args]"%(sys.argv[0])
         sys.exit(0)
     
     # open template xlm file
@@ -28,10 +28,10 @@ def main():
     params['UBUNTU_DISTRO'] = sys.argv[1]
     params['ARCH'] = sys.argv[2]
     params['EMAIL'] = sys.argv[4]
-    params['SCRIPT'] = sys.argv[5]
+    params['TRIGGER'] = jc['triggers']['periodic'][sys.argv[5]]
+    params['SCRIPT'] = sys.argv[6]
     params['NODE'] = params['SCRIPT']
-    params['SCRIPT_ARGS'] = ' '.join(sys.argv[6:])
-    params['TRIGGER'] = jc['triggers']['none']
+    params['SCRIPT_ARGS'] = ' '.join(sys.argv[7:])
 
     # replace @xxx@ in template file
     for key, value in params.iteritems():
