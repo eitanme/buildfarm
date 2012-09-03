@@ -5,6 +5,9 @@ import rosdistro
 import yaml
 import subprocess
 import urllib
+import random
+import string
+import datetime
 from xml.etree.ElementTree import ElementTree
 
 
@@ -94,6 +97,10 @@ def call(command, envir=None):
         raise BuildException(msg)
     return res
 
+def random_string(size=10):
+    char_set = string.ascii_uppercase + string.ascii_lowercase
+    return ''.join(random.sample(char_set,size))
+
 
 def ensure_dir(f):
     d = os.path.dirname(f)
@@ -106,7 +113,7 @@ def get_dependencies(stack_folder):
     print "Get the dependencies of stack in folder %s"%stack_folder
     try:
         print "Parsing stack.xml..."
-        root = ElementTree(None, stack_folder + '/stack.xml')
+        root = ElementTree(None, os.path.join(stack_folder, 'stack.xml'))
         stack_dependencies = [d.text for d in root.findall('depends')]
         system_dependencies = [d.text for d in root.findall('build_depends')]
         print "Stack Dependencies: %s"%(' '.join(stack_dependencies))
@@ -144,9 +151,10 @@ def main():
         print "Working on distro %s and stacks %s"%(ros_distro, ', '.join(stacks))
 
     workspace = os.environ['WORKSPACE']
-    buildspace = workspace + '/tmp/'
-    stackbuildspace = buildspace + '/build_stack'
-    dependbuildspace = buildspace + '/build_depend_on'
+    buildspace = os.path.join(workspace, 'tmp', str(datetime.datetime.now()).replace(' ','_'))
+    stackbuildspace = os.path.join(buildspace, 'build_stack')
+    dependbuildspace = os.path.join(buildspace, 'build_depend_on')
+    os.makedirs(buildspace)
 
     # Add ros to apt
     print "Add ros to apt sources"
@@ -188,7 +196,7 @@ def main():
     print "Get all stack dependencies"
     dependencies = []
     for stack in stacks:
-        dep = get_dependencies(buildspace + stack)
+        dep = get_dependencies(os.path.join(buildspace, stack))
         for d in dep:
             if not d in dependencies and not d in stacks:
                 dependencies.append(d)
@@ -209,7 +217,7 @@ def main():
 
     # build stacks
     print "Configure, build and test stacks"
-    os.mkdir(stackbuildspace)
+    os.makedirs(stackbuildspace)
     os.chdir(stackbuildspace)
     call("cmake ..", build_env)
     call("make", build_env)
@@ -239,7 +247,7 @@ def main():
     print "Install all dependencies of the depends_on list"
     res = []
     for s in depends_on:
-        dep = get_dependencies(buildspace + s)
+        dep = get_dependencies(os.path.join(buildspace, s))
         for d in dep:
             if not d in res:
                 res.append(d)
@@ -254,7 +262,7 @@ def main():
 
     # build depend_on stacks
     print "Configure, build and test depend_on stacks"
-    os.mkdir(dependbuildspace)
+    os.makedirs(dependbuildspace)
     os.chdir(dependbuildspace)
     call("cmake ..", build_env)
     call("make", build_env)
