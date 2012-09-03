@@ -14,7 +14,7 @@
       <tracWebsite>http://code.ros.org/trac/ros/</tracWebsite>
     </hudson.plugins.trac.TracProjectProperty>
   </properties>
-  <scm class="hudson.scm.NullSCM"/>
+  @VCS@
   <assignedNode>@NODE@</assignedNode>
   <canRoam>false</canRoam>
   <disabled>false</disabled>

@@ -32,6 +32,7 @@ def main():
     params['NODE'] = params['SCRIPT']
     params['SCRIPT_ARGS'] = ' '.join(sys.argv[6:])
     params['TRIGGER'] = jc['triggers']['none']
+    params['VCS'] = jc['vcs']['none']
 
     # replace @xxx@ in template file
     for key, value in params.iteritems():
