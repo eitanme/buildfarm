@@ -151,7 +151,7 @@ def main():
     # Add ros to apt
     print "Add ros to apt sources"
     with open('/etc/apt/sources.list.d/ros-latest.list', 'w') as f:
-        f.write("deb http://packages.ros.org/ros/ubuntu %s main"%os.environ['OS_PLATFORM'])
+        f.write("deb http://packages.ros.org/ros-shadow-fixed/ubuntu %s main"%os.environ['OS_PLATFORM'])
     call("wget http://packages.ros.org/ros.key -O %s/ros.key"%workspace)
     call("apt-key add %s/ros.key"%workspace)
     call("apt-get update")
