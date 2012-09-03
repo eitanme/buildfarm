@@ -12,7 +12,7 @@ export UBUNTU_DISTRO=$1
 export OS_PLATFORM=$1
 export ARCH=$2
 export WORKSPACE=$3
-export SCRIPT=$4
+export SCRIPT="scripts/"$4
 
 # get extra arguments of script
 cnt=1

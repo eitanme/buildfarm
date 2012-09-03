@@ -16,11 +16,11 @@ def main():
         sys.exit(0)
     
     # open template xlm file
-    f = urllib.urlopen('https://raw.github.com/willowgarage/buildfarm/master/jenkins_template.xml')
+    f = urllib.urlopen('https://raw.github.com/willowgarage/buildfarm/master/templates/jenkins_template.xml')
     job_xml = f.read()
 
     # open trigger file
-    f = urllib.urlopen('https://raw.github.com/willowgarage/buildfarm/master/jenkins_conf.yaml')
+    f = urllib.urlopen('https://raw.github.com/willowgarage/buildfarm/master/templates/jenkins_conf.yaml')
     jc = yaml.load(f)
 
     # get arguments
