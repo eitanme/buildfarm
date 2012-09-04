@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+if [ $# -lt 4 ] ;  then
+  echo "Usage: run_local ubuntu_distro arch workspace script [script_args]"
+  exit
+fi
+
+# get arguments of run_local
+export UBUNTU_DISTRO=$1
+export OS_PLATFORM=$1
+export ARCH=$2
+export WORKSPACE=$3
+export SCRIPT=$4
+
+
+# get extra arguments of script
+cnt=1
+SCRIPT_ARGS=""
+for i in $*
+do
+  if [ $cnt -gt 4 ] ; then
+    SCRIPT_ARGS=`echo $SCRIPT_ARGS $i`
+  fi
+  cnt=$(($cnt+1))
+done
+
+export OS_NAME="ubuntu"
+export JOB_TYPE="catkin"
+export IMAGETYPE="all"
+
+
+echo "  - ubuntu distro: " $UBUNTU_DISTRO
+echo "  - architecture:  " $ARCH
+echo "  - script:        " $SCRIPT
+echo "  - workspace:     " $WORKSPACE
+echo "  - script args:   " $SCRIPT_ARGS
+
+# get the debug dispatch script
+cp dispatch_debug.sh $WORKSPACE/build.sh
+
+cp scripts/* $WORKSPACE/buildfarm/scripts/
+
+
+cd $WORKSPACE
+bash ./build.sh $SCRIPT_ARGS
