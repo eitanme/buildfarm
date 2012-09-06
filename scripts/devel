@@ -140,14 +140,21 @@ def main():
         call("apt-get install %s --yes"%(' '.join([rosdep.to_apt(r) for r in dependencies])))
 
     # get the ros build environment
-    print "Retrieve the ROS build environment by sourcing /opt/ros/%s/setup.bask"%ros_distro
-    build_env = {}
-    command = ['bash', '-c', 'source /opt/ros/%s/setup.bash && env'%ros_distro]
-    proc = subprocess.Popen(command, stdout = subprocess.PIPE)
-    for line in proc.stdout:
-        (key, _, value) = line.partition("=")
-        build_env[key] = value
-    proc.communicate()
+    build_env = os.environ
+    if 'catkin' in dependencies:
+        print "Retrieve the ROS build environment by sourcing /opt/ros/%s/setup.bash"%ros_distro
+        command = ['bash', '-c', 'source /opt/ros/%s/setup.bash && env'%ros_distro]
+        proc = subprocess.Popen(command, stdout = subprocess.PIPE)
+        for line in proc.stdout:
+            (key, _, value) = line.partition("=")
+            build_env[key] = value
+        proc.communicate()
+        if proc.returncode != 0:
+            msg = "Failed to source /opt/ros/%s/setup.bash"%ros_distro
+            print "/!\  %s"%msg
+            raise BuildException(msg)
+    print "Building environment: %s"%str(build_env)
+
 
     # build stack
     print "Configure, build and test stack"
