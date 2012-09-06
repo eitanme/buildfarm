@@ -1,5 +1,27 @@
 #!/usr/bin/env python
 import os
+import sys
+
+def get_optparse(name):
+    from optparse import OptionParser
+    parser = OptionParser(usage="usage: %prog [options] distro [stacks...]", prog=name)
+    parser.add_option("-n", "--name",metavar="NAME",
+                      dest="name", default="ROS Package",
+                      help="Name for documentation set")
+    parser.add_option("-q", "--quiet",action="store_true", default=False,
+                      dest="quiet",
+                      help="Suppress doxygen errors")
+    parser.add_option("--paths",metavar="PATHS",
+                      dest="paths", default=None,
+                      help="package paths to document")
+    parser.add_option("-o",metavar="OUTPUT_DIRECTORY",
+                      dest="docdir", default='doc',
+                      help="directory to write documentation to")
+    parser.add_option("--upload",action="store", default=None,
+                      dest="upload", metavar="RSYNC_TARGET",
+                      help="rsync target argument")
+    return parser
+
 
 def call(command, envir=None):
     print "Executing command '%s'"%command
@@ -14,7 +36,28 @@ def call(command, envir=None):
     return res
 
 def main():
-  print "Running rosdoc.."
+    print
+    print
+    print
+    print "============================================================"
+    print "==== Begin doc script.  Ignore the output above ====="
+    print "============================================================"
+    print
+    print
+    print
+
+    parser = get_optparse('doc')
+    options, arguments = parser.parse_args()
+    print arguments
+
+    if len(arguments) == 0:
+        parser.print_usage()
+        raise BuildException("Wrong number of parameters for doc script")
+    else:
+        ros_distro = arguments[0]
+        stacks = arguments[1:]
+        print "Working on distro %s and stacks [%s]" % (ros_distro, ', '.join(stacks))
+
 
 if __name__ == '__main__':
     main()
