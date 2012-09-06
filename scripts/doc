@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+import os
+
+def call(command, envir=None):
+    print "Executing command '%s'"%command
+    helper = subprocess.Popen(command.split(' '), stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True, env=envir)
+    res, err = helper.communicate()
+    print str(res)
+    print str(err)
+    if helper.returncode != 0:
+        msg = "Failed to execute command '%s'"%command
+        print "/!\  %s"%msg
+        raise BuildException(msg)
+    return res
+
+def main():
+  print "Running rosdoc.."
+
+if __name__ == '__main__':
+    main()
