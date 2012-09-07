@@ -4,6 +4,7 @@ if [ $# -lt 4 ] ;  then
   exit
 fi
 
+# support relative workspace
 export OS_NAME="ubuntu"
 export IMAGETYPE="all"
 
@@ -11,7 +12,7 @@ export IMAGETYPE="all"
 export UBUNTU_DISTRO=$1
 export OS_PLATFORM=$1
 export ARCH=$2
-export WORKSPACE=$3
+export WORKSPACE=$(readlink -f $3)
 export SCRIPT="scripts/"$4
 
 # get extra arguments of script
@@ -32,11 +33,11 @@ echo "  - script:        " $SCRIPT
 echo "  - workspace:     " $WORKSPACE
 echo "  - script args:   " $SCRIPT_ARGS
 
+
 # get the debug dispatch script
 cp dispatch_debug.sh $WORKSPACE/build.sh
-
 cp scripts/* $WORKSPACE/buildfarm/scripts/
-
 
 cd $WORKSPACE
 bash ./build.sh $SCRIPT_ARGS
+

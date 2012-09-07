@@ -12,7 +12,9 @@ from xml.etree.ElementTree import ElementTree
 
 def call(command, envir=None):
     print "Executing command '%s'"%command
-    helper = subprocess.Popen(command.split(' '), stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True, env=envir)
+    helper = subprocess.Popen(command.split(' '), 
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
+                              close_fds=True, env=envir)
     res, err = helper.communicate()
     print str(res)
     print str(err)
@@ -21,6 +23,7 @@ def call(command, envir=None):
         print "/!\  %s"%msg
         raise BuildException(msg)
     return res
+
 
 
 def get_dependencies(stack_folder):
@@ -38,7 +41,23 @@ def get_dependencies(stack_folder):
         raise BuildException("Failed to parse stack.xml of stack in folder %s"%stack_folder)
 
 
-    
+def get_ros_env(ros_distro):
+    ros_env = os.environ
+    print "Retrieve the ROS build environment by sourcing /opt/ros/%s/setup.bash"%ros_distro
+    command = ['bash', '-c', 'source /opt/ros/%s/setup.bash && env'%ros_distro]
+    proc = subprocess.Popen(command, stdout = subprocess.PIPE)
+    for line in proc.stdout:
+        (key, _, value) = line.partition("=")
+        ros_env[key] = value.split('\n')[0]
+    proc.communicate()
+    if proc.returncode != 0:
+        msg = "Failed to source /opt/ros/%s/setup.bash"%ros_distro
+        print "/!\  %s"%msg
+        raise BuildException(msg)
+    print "ROS environment: %s"%str(ros_env)
+    return ros_env
+
+
 class RosDep:
     def __init__(self, ros_distro):
         self.r2a = {}
@@ -74,15 +93,6 @@ class BuildException(Exception):
         self.msg = msg
 
 def main():
-    print
-    print
-    print
-    print "============================================================"
-    print "==== Begin ci devel script.    Ignore the output above ====="
-    print "============================================================"
-    print
-    print
-    print
 
     if len(sys.argv) != 3:
         print "Usage: %s ros_distro stack_name"%sys.argv[0]
@@ -138,39 +148,33 @@ def main():
         call("apt-get install %s --yes"%(' '.join([rosdep.to_apt(r) for r in dependencies])))
 
     # get the ros build environment for stacks that use catkin
-    build_env = os.environ
     if 'catkin' in dependencies:
-        print "Retrieve the ROS build environment by sourcing /opt/ros/%s/setup.bash"%ros_distro
-        command = ['bash', '-c', 'source /opt/ros/%s/setup.bash && env'%ros_distro]
-        proc = subprocess.Popen(command, stdout = subprocess.PIPE)
-        for line in proc.stdout:
-            (key, _, value) = line.partition("=")
-            build_env[key] = value.split('\n')[0]
-        proc.communicate()
-        if proc.returncode != 0:
-            msg = "Failed to source /opt/ros/%s/setup.bash"%ros_distro
-            print "/!\  %s"%msg
-            raise BuildException(msg)
-    print "Building environment: %s"%str(build_env)
+        ros_env = get_ros_env(ros_distro)
+    else:
+        ros_env = os.environ
 
     # replace the CMakeLists.txt file for stacks that use catkin
     if 'catkin' in dependencies:
         print "Replacing the CMakeLists.txt file from rosinstall with a native Catkin one"
         os.remove(os.path.join(buildspace, 'CMakeLists.txt'))
-        call("catkin_init_workspace %s"%buildspace, build_env)
+        call("catkin_init_workspace %s"%buildspace, ros_env)
         call("ls -l %s/CMakeLists.txt"%buildspace)
         call("cat %s/CMakeLists.txt"%buildspace)
     else:
         print "Keeping the existing rosinstall cmake file"
 
+
     # build stack
     print "Configure, build and test stack"
     os.makedirs(stackbuildspace)
     os.chdir(stackbuildspace)
-    call("cmake ..", build_env)
-    call("make", build_env)
-    call("make run_tests", build_env)
+    call("cmake ..", ros_env)
+    call("make", ros_env)
+    call("make run_tests", ros_env)
 
+    # copy all test results
+    os.makedirs(os.path.join(buildspace, 'test_results'))
+    
 
 
 
@@ -185,16 +189,6 @@ if __name__ == '__main__':
         print ex.msg
 
     else:
-        print "Prerelease Test Failed. Check out the console output above for details."
-
-    print
-    print
-    print
-    print "============================================================"
-    print "==== End of prerelease script. Ignore the output below ====="
-    print "============================================================"
-    print
-    print
-    print
+        print "Devel Test Failed. Check out the console output above for details."
 
     sys.exit(-1)

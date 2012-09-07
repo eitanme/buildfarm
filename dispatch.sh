@@ -71,8 +71,19 @@ ls -l
 cd $WORKSPACE
 ls -l
 chmod 755 $WORKSPACE/buildfarm/${SCRIPT}
+
+echo "============================================================"
+echo "==== Begin" $SCRIPT "script.    Ignore the output above ====="
+echo "============================================================"
+
 exec $WORKSPACE/buildfarm/${SCRIPT} ${SCRIPT_ARGS}
+
+echo "============================================================"
+echo "==== End" $SCRIPT "script.    Ignore the output below ====="
+echo "============================================================"
+
 EOF
+
 
 chmod 755 pbuilder-env.sh
 
@@ -92,18 +103,11 @@ rm -rf $tmpdir
 
 
 
-echo "============================================================"
-echo "==== Begin" $SCRIPT "script.    Ignore the output above ====="
-echo "============================================================"
-
 sudo pbuilder execute \
     --basetgz $basetgz \
     --bindmounts "/var/cache/pbuilder/ccache $WORKSPACE" \
     --inputfile $WORKSPACE/buildfarm/$SCRIPT \
     -- $WORKSPACE/pbuilder-env.sh $SCRIPT
 
-echo "============================================================"
-echo "==== End" $SCRIPT "script.    Ignore the output below ====="
-echo "============================================================"
 
 /bin/echo "^^^^^^^^^^^^^^^^^^  dispatch.sh ^^^^^^^^^^^^^^^^^^^^"
