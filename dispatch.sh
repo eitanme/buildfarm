@@ -89,10 +89,21 @@ rm -rf $tmpdir
 
 
 
+
+
+
+echo "============================================================"
+echo "==== Begin" $SCRIPT "script.    Ignore the output above ====="
+echo "============================================================"
+
 sudo pbuilder execute \
     --basetgz $basetgz \
     --bindmounts "/var/cache/pbuilder/ccache $WORKSPACE" \
     --inputfile $WORKSPACE/buildfarm/$SCRIPT \
     -- $WORKSPACE/pbuilder-env.sh $SCRIPT
+
+echo "============================================================"
+echo "==== End" $SCRIPT "script.    Ignore the output below ====="
+echo "============================================================"
 
 /bin/echo "^^^^^^^^^^^^^^^^^^  dispatch.sh ^^^^^^^^^^^^^^^^^^^^"
