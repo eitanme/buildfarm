@@ -93,7 +93,7 @@ def main():
         print "Working on distro %s and stacks %s"%(ros_distro, stack)
 
     workspace = os.environ['WORKSPACE']
-    buildspace = os.path.join(workspace, 'tmp', str(datetime.datetime.now()).replace(' ','_'))
+    buildspace = os.path.join(workspace, 'tmp', str(datetime.datetime.now()).replace(' ','_').replace(':','.'))
     stackbuildspace = os.path.join(buildspace, 'build_stack')
     os.makedirs(buildspace)
 
@@ -169,7 +169,7 @@ def main():
     os.chdir(stackbuildspace)
     call("cmake ..", build_env)
     call("make", build_env)
-    call("make -k test", build_env)
+    call("make run_tests", build_env)
 
 
 
