@@ -140,7 +140,7 @@ def main():
         call("apt-get install %s --yes"%(' '.join([rosdep.to_apt(r) for r in dependencies])))
 
     # get the ros build environment
-    print "Retrieve the ROS build environment by sourcing /opt/ros/%s/setup.bask"%ros_distro
+    print "Retrieve the ROS build environment by sourcing /opt/ros/%s/setup.bash"%ros_distro
     build_env = {}
     command = ['bash', '-c', 'source /opt/ros/%s/setup.bash && env'%ros_distro]
     proc = subprocess.Popen(command, stdout = subprocess.PIPE)
