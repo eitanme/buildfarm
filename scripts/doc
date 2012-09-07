@@ -1,10 +1,32 @@
 #!/usr/bin/env python
 import os
 import sys
+import subprocess
+import yaml
+import urllib
+import datetime
+
+def get_stack_package_paths(stack_folder):
+    paths = []
+
+    #Handle the case of a unary stack
+    if os.path.isfile(os.path.join(stack_folder, 'manifest.xml')):
+        paths.append(stack_folder)
+        #At this point, we don't need to search through subdirectories
+        return paths
+
+    #Get a list of all the directories in the stack folder
+    #A folder is defined as a package if it contains a manifest.xml file
+    print "Getting the packages that are a part of a given stack %s..." % stack_folder
+    subdirs = [name for name in os.listdir(stack_folder) if os.path.isdir(os.path.join(stack_folder, name))]
+    for subdir in subdirs:
+        if os.path.isfile(os.path.join(subdir, 'manifest.xml')):
+            paths.append(subdir)
+    return paths
 
 def get_optparse(name):
     from optparse import OptionParser
-    parser = OptionParser(usage="usage: %prog [options] distro [stacks...]", prog=name)
+    parser = OptionParser(usage="usage: %prog [options] distro stack", prog=name)
     parser.add_option("-n", "--name",metavar="NAME",
                       dest="name", default="ROS Package",
                       help="Name for documentation set")
@@ -50,14 +72,84 @@ def main():
     options, arguments = parser.parse_args()
     print arguments
 
-    if len(arguments) == 0:
+    if len(arguments) != 2:
         parser.print_usage()
         raise BuildException("Wrong number of parameters for doc script")
     else:
         ros_distro = arguments[0]
-        stacks = arguments[1:]
-        print "Working on distro %s and stacks [%s]" % (ros_distro, ', '.join(stacks))
+        stack = arguments[1]
+        print "Working on distro %s and stack %s" % (ros_distro, stack)
 
+    workspace = os.environ['WORKSPACE']
+    docspace = os.path.join(workspace, 'doc_stacks', str(datetime.datetime.now()).replace(' ','_'))
+    os.makedirs(docspace)
+
+    """
+    TODO: Uncomment
+    #Add ros to apt
+    print "Add ROS to apt sources"
+    with open('/etc/apt/sources.list.d/ros-latest.list', 'w') as f:
+        f.write("deb http://packages.ros.org/ros-shadow-fixed/ubuntu %s main"%os.environ['OS_PLATFORM'])
+    call("wget http://packages.ros.org/ros.key -O %s/ros.key"%workspace)
+    call("apt-key add %s/ros.key"%workspace)
+    call("apt-get update")
+    """
+
+    # install vcs tools
+    print "Installing vcs tools..."
+    call("apt-get install mercurial --yes")
+    call("apt-get install git --yes")   
+    call("apt-get install subversion --yes")
+
+    #install rosdoc
+    print "Installing rosdoc..."
+    call("apt-get install ros-%s-documentation --yes" % ros_distro)
+
+    #We don't need to build anything, we're just going to generate documentation
+    #As such, we can just work directly off the rosdistro file
+    print "Parsing doc file for %s" % ros_distro
+    #TODO Change this URL or make it a parameter or something
+    f = urllib.urlopen('https://raw.github.com/eitanme/rosdistro/master/releases/%s-doc.yaml'%ros_distro)
+    repos = yaml.load(f.read())['repositories']
+
+    print "Finding information for stack %s" % stack
+    if not stack in repos.keys():
+        raise BuildException("Stack %s does not exist in %s rosdistro file" % (stack, ros_distro))
+    conf = repos[stack]
+    rosinstall = yaml.dump([{conf['type']: {'local-name': stack, 'uri': conf['url'], 'version': conf['version']}}], default_style=False)
+    print "Rosinstall for stack %s:\n%s"%(stack, rosinstall)
+    with open(workspace+"/stack.rosinstall", 'w') as f:
+        f.write(rosinstall)
+    print "Created rosinstall file for stack %s, installing stack..."%stack
+    #TODO Figure out why rosinstall insists on having ROS available when called with nobuild, but not catkin
+    call("rosinstall %s %s/stack.rosinstall --nobuild --catkin" % (docspace, workspace))
+
+    # get the ros build environment
+    print "Retrieve the ROS build environment by sourcing /opt/ros/%s/setup.bash"%ros_distro
+    #doc_env = {}
+    #command = ['bash', '-c', 'source /opt/ros/%s/setup.bash && env'%ros_distro]
+    #proc = subprocess.Popen(command, stdout = subprocess.PIPE)
+    #for line in proc.stdout:
+    #    print line
+    #    (key, _, value) = line.partition("=")
+    #    doc_env[key] = value
+    #proc.communicate()
+
+    #call("which rosrun", doc_env)
+    #call("which bash")
+    #call("which bash", doc_env)
+    #call("/opt/ros/fuerte/bin/rosrun", doc_env)
+    #call("source /opt/ros/%s/setup.bash" % ros_distro)
+
+
+    stack_path = "%s/%s" % (docspace, stack)
+    package_paths = ':'.join(get_stack_package_paths(stack_path))
+    stack_docs = "%s/docs" % (docspace)
+    print "Running documentation generation on path %s" % package_paths
+    os.makedirs(stack_docs)
+    command = ['bash', '-c', 'source /opt/ros/%s/setup.bash && rosrun rosdoc rosdoc --paths=%s -o %s' % (ros_distro, package_paths, stack_docs)]
+    proc = subprocess.Popen(command, stdout = subprocess.PIPE)
+    proc.communicate()
 
 if __name__ == '__main__':
     main()
