@@ -6,6 +6,7 @@ import yaml
 import subprocess
 import urllib
 import datetime
+import fnmatch
 from xml.etree.ElementTree import ElementTree
 
 
@@ -158,8 +159,6 @@ def main():
         print "Replacing the CMakeLists.txt file from rosinstall with a native Catkin one"
         os.remove(os.path.join(buildspace, 'CMakeLists.txt'))
         call("catkin_init_workspace %s"%buildspace, ros_env)
-        call("ls -l %s/CMakeLists.txt"%buildspace)
-        call("cat %s/CMakeLists.txt"%buildspace)
     else:
         print "Keeping the existing rosinstall cmake file"
 
@@ -172,10 +171,29 @@ def main():
     call("make", ros_env)
     call("make run_tests", ros_env)
 
-    # copy all test results
-    os.makedirs(os.path.join(buildspace, 'test_results'))
-    
+    call("ls -l %s"%(os.path.join(stackbuildspace, 'test_results/')))
 
+    # copy all test results
+    print "Preparing xml test results"
+    try:
+        os.makedirs(os.path.join(workspace, 'test_results'))
+        print "Created test results directory"
+    except:
+        pass
+    os.chdir(os.path.join(workspace, 'test_results'))
+    print "Create dummy test results"
+    with open(os.path.join(workspace, 'buildfarm/templates/junit_ouput_template.xml')) as f:
+        xml = f.read()
+    xml.replace('@MSG@', 'dummy')
+    with open('dummy.xml', 'w') as f:
+        f.write(xml)
+    print "Copy all test results"
+    for root, dirnames, filenames in os.walk(os.path.join(stackbuildspace, 'test_results')):
+        print "root ", root
+        print "dirnames ", dirnames
+        print "filenames ", filenames
+        for filename in fnmatch.filter(filenames, '*.xml'):
+            call("cp %s %s/test_results/"%(os.path.join(root, filename), workspace))
 
 
 if __name__ == '__main__':
