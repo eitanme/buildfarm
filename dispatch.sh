@@ -76,7 +76,7 @@ echo "============================================================"
 echo "==== Begin" $SCRIPT "script.    Ignore the output above ====="
 echo "============================================================"
 
-exec $WORKSPACE/buildfarm/${SCRIPT} ${SCRIPT_ARGS}
+$WORKSPACE/buildfarm/${SCRIPT} ${SCRIPT_ARGS}
 
 echo "============================================================"
 echo "==== End" $SCRIPT "script.    Ignore the output below ====="
