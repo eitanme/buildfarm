@@ -5,7 +5,6 @@ import rosdistro
 import yaml
 import subprocess
 import urllib
-import random
 import string
 import datetime
 from xml.etree.ElementTree import ElementTree
@@ -82,6 +81,21 @@ class RosDep:
 
 
 
+def get_ros_env(ros_distro):
+    ros_env = os.environ
+    print "Retrieve the ROS build environment by sourcing /opt/ros/%s/setup.bash"%ros_distro
+    command = ['bash', '-c', 'source /opt/ros/%s/setup.bash && env'%ros_distro]
+    proc = subprocess.Popen(command, stdout = subprocess.PIPE)
+    for line in proc.stdout:
+        (key, _, value) = line.partition("=")
+        ros_env[key] = value.split('\n')[0]
+    proc.communicate()
+    if proc.returncode != 0:
+        msg = "Failed to source /opt/ros/%s/setup.bash"%ros_distro
+        print "/!\  %s"%msg
+        raise BuildException(msg)
+    print "ROS environment: %s"%str(ros_env)
+    return ros_env
 
 
 
@@ -96,16 +110,6 @@ def call(command, envir=None):
         print "/!\  %s"%msg
         raise BuildException(msg)
     return res
-
-def random_string(size=10):
-    char_set = string.ascii_uppercase + string.ascii_lowercase
-    return ''.join(random.sample(char_set,size))
-
-
-def ensure_dir(f):
-    d = os.path.dirname(f)
-    if not os.path.exists(d):
-        os.makedirs(d)
 
 
 def get_dependencies(stack_folder):
@@ -123,6 +127,22 @@ def get_dependencies(stack_folder):
         raise BuildException("Failed to parse stack.xml of stack in folder %s"%stack_folder)
 
 
+def copy_test_results(workspace, buildspace):
+    print "Preparing xml test results"
+    try:
+        os.makedirs(os.path.join(workspace, 'test_results'))
+        print "Created test results directory"
+    except:
+        pass
+    os.chdir(os.path.join(workspace, 'test_results'))
+    print "Create dummy test results"
+    call("cp %s %s"%(os.path.join(workspace, 'buildfarm/templates/junit_dummy_ouput_template.xml'),
+                     os.path.join(workspace, 'test_results/')))
+    print "Copy all test results"
+    for root, dirnames, filenames in os.walk(os.path.join(buildspace, 'test_results')):
+        for filename in fnmatch.filter(filenames, '*.xml'):
+            call("cp %s %s/test_results/"%(os.path.join(root, filename), workspace))
+
     
 class BuildException(Exception):
     def __init__(self, msg):
@@ -132,15 +152,6 @@ class BuildException(Exception):
 
 
 def main():
-    print
-    print
-    print
-    print "============================================================"
-    print "==== Begin prerelease script.  Ignore the output above ====="
-    print "============================================================"
-    print
-    print
-    print
 
     if len(sys.argv) <= 2:
         print "Usage: %s ros_distro stack_name"%sys.argv[0]
@@ -151,10 +162,10 @@ def main():
         print "Working on distro %s and stacks %s"%(ros_distro, ', '.join(stacks))
 
     workspace = os.environ['WORKSPACE']
-    buildspace = os.path.join(workspace, 'tmp', str(datetime.datetime.now()).replace(' ','_'))
-    stackbuildspace = os.path.join(buildspace, 'build_stack')
-    dependbuildspace = os.path.join(buildspace, 'build_depend_on')
-    os.makedirs(buildspace)
+    sourcespace = os.path.join('/tmp', str(datetime.datetime.now()).replace(' ','_').replace(':','.'))
+    stackbuildspace = os.path.join(sourcespace, 'build_stack')
+    dependbuildspace = os.path.join(sourcespace, 'build_depend_on')
+    os.makedirs(sourcespace)
 
     # Add ros to apt
     print "Add ros to apt sources"
@@ -164,6 +175,10 @@ def main():
     call("apt-key add %s/ros.key"%workspace)
     call("apt-get update")
 
+    # install vcs tools
+    print "Installing vcs tools"
+    call("apt-get install mercurial subversion --yes")
+
     # Create rosdep object
     print "Create rosdep object"
     rosdep = RosDep(ros_distro)
@@ -172,7 +187,7 @@ def main():
     # parse the rosdistro file
     print "Parsing rosdistro file for %s"%ros_distro
     distro = rosdistro.Rosdistro(ros_distro)
-    # print "Resolve all entries in the rosdistro file to ros packages"
+    print "Resolve all entries in the rosdistro file to ros packages"
     distro_apt = []
     for d in distro._repoinfo.keys():
         distro_apt.append(rosdep.to_apt(d))
@@ -190,13 +205,16 @@ def main():
     with open(workspace+"/stack.rosinstall", 'w') as f:
         f.write(rosinstall)
     print "Create rosinstall file for stacks %s"%(', '.join(stacks))
-    call("rosinstall %s %s/stack.rosinstall --catkin"%(buildspace, workspace))
+    call("rosinstall %s %s/stack.rosinstall --catkin"%(sourcespace, workspace))
 
     # get the stack dependencies
     print "Get all stack dependencies"
+    catkin = True
     dependencies = []
     for stack in stacks:
-        dep = get_dependencies(os.path.join(buildspace, stack))
+        dep = get_dependencies(os.path.join(sourcespace, stack))
+        if not 'catkin' in dep:
+            catkin = False
         for d in dep:
             if not d in dependencies and not d in stacks:
                 dependencies.append(d)
@@ -204,24 +222,41 @@ def main():
         print "Install all dependencies of stacks: %s"%(', '.join(dependencies))
         call("apt-get install %s --yes"%(' '.join([rosdep.to_apt(r) for r in dependencies])))
 
+    # check
+    if not catkin and len(stacks) > 1:
+        raise BuildException("Can only test one non-catkin stack at a time")
 
-    # get the ros build environment
-    print "Retrieve the ROS build environment by sourcing /opt/ros/%s/setup.bask"%ros_distro
-    build_env = {}
-    command = ['bash', '-c', 'source /opt/ros/%s/setup.bash && env'%ros_distro]
-    proc = subprocess.Popen(command, stdout = subprocess.PIPE)
-    for line in proc.stdout:
-        (key, _, value) = line.partition("=")
-        build_env[key] = value
-    proc.communicate()
 
-    # build stacks
-    print "Configure, build and test stacks"
+    # get the ros build environment for stacks that use catkin
+    if catkin:
+        ros_env = get_ros_env(ros_distro)
+    else:
+        ros_env = os.environ
+
+    # replace the CMakeLists.txt file for stacks that use catkin
+    print "Removing the CMakeLists.txt file generated by rosinstall"
+    os.remove(os.path.join(sourcespace, 'CMakeLists.txt'))
     os.makedirs(stackbuildspace)
     os.chdir(stackbuildspace)
-    call("cmake ..", build_env)
-    call("make", build_env)
-    call("make -k test", build_env)
+    if catkin:
+        print "Create a new CMakeLists.txt file using catkin"
+        call("catkin_init_workspace %s"%sourcespace, ros_env)
+        call("cmake ..", ros_env)        
+    else:
+        print "Use the CMakeLists.txt file from the stack itself"
+        call("cmake ../%s"%stack, ros_env)                
+
+    # build stacks
+    print "Build stacks"
+    call("make", ros_env)
+    print "Test stacks"
+    call("make run_tests", ros_env)
+
+    # don't test depends-on for non-catkin stacks
+    if not catkin:
+        copy_test_results(workspace, stackbuildspace)
+        print "We're not testing the depends-on for non-catkin stacks"
+        return
 
     # get stack depends-on list
     print "Get list of stacks that depend on %s"%stack
@@ -241,13 +276,13 @@ def main():
     with open(workspace+"/depends_on.rosinstall", 'w') as f:
         f.write(rosinstall)
     print "Create rosinstall file for depends on"
-    call("rosinstall --catkin %s %s/depends_on.rosinstall"%(buildspace, workspace))
+    call("rosinstall --catkin %s %s/depends_on.rosinstall"%(sourcespace, workspace))
 
     # install all stack and system dependencies of the depends_on list
     print "Install all dependencies of the depends_on list"
     res = []
     for s in depends_on:
-        dep = get_dependencies(os.path.join(buildspace, s))
+        dep = get_dependencies(os.path.join(sourcespace, s))
         for d in dep:
             if not d in res:
                 res.append(d)
@@ -260,37 +295,32 @@ def main():
     call("apt-get install --yes %s"%(' '.join(res_apt)))
 
 
-    # build depend_on stacks
-    print "Configure, build and test depend_on stacks"
+    # replace the CMakeLists.txt file again
+    print "Removing the CMakeLists.txt file generated by rosinstall"
+    os.remove(os.path.join(sourcespace, 'CMakeLists.txt'))
     os.makedirs(dependbuildspace)
     os.chdir(dependbuildspace)
-    call("cmake ..", build_env)
-    call("make", build_env)
-    call("make -k test", build_env)
+    print "Create a new CMakeLists.txt file using catkin"
+    call("catkin_init_workspace %s"%sourcespace, ros_env)
+    call("cmake ..", ros_env)        
 
-
+    # build stacks
+    print "Build depends-on stacks"
+    call("make", ros_env)
+    print "Test depends-on stacks"
+    call("make run_tests", ros_env)
+    copy_test_results(workspace, dependbuildspace)
 
 if __name__ == '__main__':
     # global try
     try:
         main()
-        sys.exit(0)
+        print "Prerelease script finished cleanly"
 
     # global catch
     except BuildException as ex:
         print ex.msg
 
-    else:
+    except Exception as ex:
         print "Prerelease Test Failed. Check out the console output above for details."
-
-    print
-    print
-    print
-    print "============================================================"
-    print "==== End of prerelease script. Ignore the output below ====="
-    print "============================================================"
-    print
-    print
-    print
-
-    sys.exit(-1)
+        sys.exit(-1)
