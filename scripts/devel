@@ -171,8 +171,6 @@ def main():
     call("make", ros_env)
     call("make run_tests", ros_env)
 
-    call("ls -l %s"%(os.path.join(stackbuildspace, 'test_results/')))
-
     # copy all test results
     print "Preparing xml test results"
     try:
@@ -200,13 +198,12 @@ if __name__ == '__main__':
     # global try
     try:
         main()
-        sys.exit(0)
+        print "Devel script finished cleanly"
 
     # global catch
     except BuildException as ex:
         print ex.msg
 
-    else:
+    except Exception as ex:
         print "Devel Test Failed. Check out the console output above for details."
-
-    sys.exit(-1)
+        sys.exit(-1)
