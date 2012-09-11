@@ -37,9 +37,11 @@ def main():
     for s, conf in devel.iteritems():
         for u in ubuntu_distro[ros_distro]:
             for a in arch:
+                if conf['type'] == 'svn':
+                    conf['version'] = 'dummy'
                 call("./run_jenkins_vcs %s %s %s wim@hidof.com %s %s %s devel %s %s"%(u, a, ros_distro+'-'+s, conf['type'], conf['url'], conf['version'], ros_distro, s))
 
-    print devel
+
 
 
 

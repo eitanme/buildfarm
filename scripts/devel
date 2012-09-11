@@ -104,7 +104,7 @@ def main():
         print "Working on distro %s and stacks %s"%(ros_distro, stack)
 
     workspace = os.environ['WORKSPACE']
-    buildspace = os.path.join(workspace, 'tmp', str(datetime.datetime.now()).replace(' ','_').replace(':','.'))
+    buildspace = os.path.join('/tmp', str(datetime.datetime.now()).replace(' ','_').replace(':','.'))
     stackbuildspace = os.path.join(buildspace, 'build_stack')
     os.makedirs(buildspace)
 
