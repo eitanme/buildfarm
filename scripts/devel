@@ -186,9 +186,6 @@ def main():
                      os.path.join(workspace, 'test_results/')))
     print "Copy all test results"
     for root, dirnames, filenames in os.walk(os.path.join(stackbuildspace, 'test_results')):
-        print "root ", root
-        print "dirnames ", dirnames
-        print "filenames ", filenames
         for filename in fnmatch.filter(filenames, '*.xml'):
             call("cp %s %s/test_results/"%(os.path.join(root, filename), workspace))
 
