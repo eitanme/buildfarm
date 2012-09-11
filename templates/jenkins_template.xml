@@ -34,7 +34,7 @@ echo &quot;_________________________________END SCRIPT__________________________
   </builders>
   <publishers>
     <hudson.tasks.junit.JUnitResultArchiver>
-      <testResults>xml_output/*.xml</testResults>
+      <testResults>test_results/*.xml</testResults>
       <keepLongStdio>false</keepLongStdio>
       <testDataPublishers/>
     </hudson.tasks.junit.JUnitResultArchiver>

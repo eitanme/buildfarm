@@ -16,24 +16,6 @@ sudo apt-get -y install pbuilder
 
 #  update buildfarm utils
 cd $WORKSPACE
-# if [ -d buildfarm ] ; then
-#   cd buildfarm
-#   git clean -dfx
-#   git reset --hard HEAD
-#   git pull
-#   cd ..
-# else
-#   git clone git://github.com/willowgarage/buildfarm.git
-# fi
-# if [ -d catkin-debs ] ; then
-#   cd catkin-debs
-#   git clean -dfx
-#   git reset --hard HEAD
-#   git pull
-#   cd ..
-# else
-#   git clone git://github.com/willowgarage/catkin-debs.git
-# fi
 
 . ./buildfarm/buildfarm_util.sh
 
@@ -71,8 +53,19 @@ ls -l
 cd $WORKSPACE
 ls -l
 chmod 755 $WORKSPACE/buildfarm/${SCRIPT}
+
+echo "============================================================"
+echo "==== Begin" $SCRIPT "script.    Ignore the output above ====="
+echo "============================================================"
+
 exec $WORKSPACE/buildfarm/${SCRIPT} ${SCRIPT_ARGS}
+
+echo "============================================================"
+echo "==== End" $SCRIPT "script.    Ignore the output below ====="
+echo "============================================================"
+
 EOF
+
 
 chmod 755 pbuilder-env.sh
 
@@ -86,13 +79,11 @@ $WORKSPACE/buildfarm/create_chroot.sh $IMAGETYPE $UBUNTU_DISTRO $ARCH $basetgz_f
 basetgz=`cat $basetgz_filename`
 rm -rf $tmpdir
 
-
-
-
 sudo pbuilder execute \
     --basetgz $basetgz \
     --bindmounts "/var/cache/pbuilder/ccache $WORKSPACE" \
     --inputfile $WORKSPACE/buildfarm/$SCRIPT \
     -- $WORKSPACE/pbuilder-env.sh $SCRIPT
+
 
 /bin/echo "^^^^^^^^^^^^^^^^^^  dispatch.sh ^^^^^^^^^^^^^^^^^^^^"
