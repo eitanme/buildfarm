@@ -182,11 +182,8 @@ def main():
         pass
     os.chdir(os.path.join(workspace, 'test_results'))
     print "Create dummy test results"
-    with open(os.path.join(workspace, 'buildfarm/templates/junit_ouput_template.xml')) as f:
-        xml = f.read()
-    xml.replace('@MSG@', 'dummy')
-    with open('dummy.xml', 'w') as f:
-        f.write(xml)
+    call("cp %s %s"%(os.path.join(workspace, 'buildfarm/templates/junit_dummy_ouput_template.xml'),
+                     os.path.join(workspace, 'test_results/')))
     print "Copy all test results"
     for root, dirnames, filenames in os.walk(os.path.join(stackbuildspace, 'test_results')):
         print "root ", root
