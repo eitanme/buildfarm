@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <project>
   <actions/>
-  <description>Builds of @SCRIPT@ script on @UBUNTU_DISTRO@ / @ARCH@ </description>
+  <description>DO NOT EDIT BY HAND. Automatically generated job to run the @SCRIPT@ script on @UBUNTU_DISTRO@ / @ARCH@.</description>
   <logRotator>
     <daysToKeep>180</daysToKeep>
     <numToKeep>-1</numToKeep>
