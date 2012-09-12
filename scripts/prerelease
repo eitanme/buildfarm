@@ -7,6 +7,7 @@ import subprocess
 import urllib
 import string
 import datetime
+import fnmatch
 from xml.etree.ElementTree import ElementTree
 
 
@@ -139,12 +140,8 @@ def copy_test_results(workspace, buildspace):
                      os.path.join(workspace, 'test_results/')))
     print "Copy all test results"
     for root, dirnames, filenames in os.walk(os.path.join(buildspace, 'test_results')):
-        print root
-        print dirnames
-        print filenames
         for filename in fnmatch.filter(filenames, '*.xml'):
             call("cp %s %s/test_results/"%(os.path.join(root, filename), workspace))
-
     
 class BuildException(Exception):
     def __init__(self, msg):
@@ -164,7 +161,7 @@ def main():
         print "Working on distro %s and stacks %s"%(ros_distro, ', '.join(stacks))
 
     workspace = os.environ['WORKSPACE']
-    sourcespace = os.path.join('/tmp', str(datetime.datetime.now()).replace(' ','_').replace(':','.'))
+    sourcespace = os.path.join('%s/tmp'%workspace, str(datetime.datetime.now()).replace(' ','_').replace(':','.'))
     stackbuildspace = os.path.join(sourcespace, 'build_stack')
     dependbuildspace = os.path.join(sourcespace, 'build_depend_on')
     os.makedirs(sourcespace)
@@ -312,6 +309,7 @@ def main():
     print "Test depends-on stacks"
     call("make run_tests", ros_env)
     copy_test_results(workspace, dependbuildspace)
+    print "right here"
 
 if __name__ == '__main__':
     # global try
@@ -325,4 +323,4 @@ if __name__ == '__main__':
 
     except Exception as ex:
         print "Prerelease Test Failed. Check out the console output above for details."
-        sys.exit(-1)
+        raise ex
