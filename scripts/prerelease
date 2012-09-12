@@ -268,6 +268,10 @@ def main():
                 depends_on_apt.append(d)
                 depends_on.append(rosdep.to_stack(d))
     print "Depends_on list for stacks: %s"%(', '.join(depends_on))
+    if len(depends_on) == 0:
+        copy_test_results(workspace, stackbuildspace)
+        print "No wet groovy stacks in apt depend on this stack. Test finished here"
+        return
 
     # install depends_on stacks from source
     rosinstall = yaml.dump([{'git': {'local-name': stack, 'uri': distro._repoinfo[stack].url, 'version': 'master'}} for stack in depends_on], default_style=False)
@@ -291,7 +295,8 @@ def main():
         if not d_apt in stacks_apt and not d_apt in depends_on_apt:
             res_apt.append(d_apt)
     print "Dependencies of depends_on list are %s"%(', '.join(res_apt))
-    call("apt-get install --yes %s"%(' '.join(res_apt)))
+    if len(res_apt) > 0:
+        call("apt-get install --yes %s"%(' '.join(res_apt)))
 
 
     # replace the CMakeLists.txt file again
