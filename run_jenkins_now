@@ -4,6 +4,7 @@ import sys
 import jenkins
 import urllib
 import yaml
+import datetime
 
 CONFIG_PATH_LOCAL = '/home/willow/hds.xml'
 CONFIG_PATH = 'http://wgs24.willowgarage.com/hudson-html/hds.xml'
@@ -33,6 +34,7 @@ def main():
     params['SCRIPT_ARGS'] = ' '.join(sys.argv[6:])
     params['TRIGGER'] = jc['triggers']['none']
     params['VCS'] = jc['vcs']['none']
+    params['TIME'] = datetime.datetime.now()
 
     # replace @xxx@ in template file
     for key, value in params.iteritems():
