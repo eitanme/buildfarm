@@ -184,6 +184,8 @@ def main():
     # build stack
     print "Build stack %s"%stack
     call("make", ros_env)
+    print "Build tests of stack %s"%stack
+    call("make tests", ros_env)
     print "Test stack %s"%stack
     call("make run_tests", ros_env)
 
