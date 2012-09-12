@@ -34,7 +34,7 @@ def main():
     params['SCRIPT_ARGS'] = ' '.join(sys.argv[6:])
     params['TRIGGER'] = jc['triggers']['none']
     params['VCS'] = jc['vcs']['none']
-    params['TIME'] = datetime.datetime.now()
+    params['TIME'] = str(datetime.datetime.now())
 
     # replace @xxx@ in template file
     for key, value in params.iteritems():
