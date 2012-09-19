@@ -177,9 +177,13 @@ def main():
         call("cmake ..", ros_env)        
         ros_env = get_ros_env(os.path.join(stackbuildspace, 'buildspace/setup.bash'))
     else:
+<<<<<<< HEAD
+        print "Keeping the existing rosinstall cmake file"
+=======
         print "Use the CMakeLists.txt file from the stack itself"
         ros_env = os.environ
         call("cmake ../%s"%stack, ros_env)
+>>>>>>> 18b1f3a3ece7cd8814a361707b095566c8f8b829
 
     # build stack
     print "Build stack %s"%stack
