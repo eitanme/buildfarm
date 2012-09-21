@@ -1,0 +1,148 @@
+#!/usr/bin/env python
+# Software License Agreement (BSD License)
+#
+# Copyright (c) 2008, Willow Garage, Inc.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#  * Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#  * Redistributions in binary form must reproduce the above
+#    copyright notice, this list of conditions and the following
+#    disclaimer in the documentation and/or other materials provided
+#    with the distribution.
+#  * Neither the name of Willow Garage, Inc. nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+# Revision $Id: rosdoc 11469 2010-10-12 00:56:25Z kwc $
+
+import rosdoc_lite
+import urllib
+import os
+import sys
+import yaml
+import subprocess
+from common import *
+
+def get_stack_packages(stack_folder):
+    paths = []
+
+    #Handle the case of a unary stack
+    if os.path.isfile(os.path.join(stack_folder, 'manifest.xml')):
+        paths.append(stack_folder)
+        #At this point, we don't need to search through subdirectories
+        return paths
+
+    #Get a list of all the directories in the stack folder
+    #A folder is defined as a package if it contains a manifest.xml file
+    print "Getting the packages that are a part of a given stack %s..." % stack_folder
+    subdirs = [name for name in os.listdir(stack_folder) if os.path.isdir(os.path.join(stack_folder, name))]
+    for subdir in subdirs:
+        if os.path.isfile(os.path.join(stack_folder, subdir, 'manifest.xml')):
+            paths.append(os.path.basename(subdir))
+    return paths
+
+def call(command, envir=None):
+    print "Executing command '%s'"%command
+    helper = subprocess.Popen(command.split(' '), stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True, env=envir)
+    res, err = helper.communicate()
+    print str(res)
+    print str(err)
+    if helper.returncode != 0:
+        msg = "Failed to execute command '%s'"%command
+        print "/!\  %s"%msg
+        raise BuildException(msg)
+    return res
+
+def build_tagfile(apt_deps, apt_tagfile):
+    #TODO: Switch to urllib
+    #f = urllib.urlopen('https://raw.github.com/eitanme/rosdistro/master/releases/%s-doc.yaml'%ros_distro)
+    #f = open('tags.yaml', 'r')
+    #tags = yaml.load(f.read())
+
+
+def document_stack(workspace, docspace, ros_distro, stack):
+    print "Working on distro %s and stack %s" % (ros_distro, stack)
+    print "Parsing doc file for %s" % ros_distro
+    f = urllib.urlopen('https://raw.github.com/eitanme/rosdistro/master/releases/%s-doc.yaml'%ros_distro)
+    repos = yaml.load(f.read())['repositories']
+
+    print "Finding information for stack %s" % stack
+    if not stack in repos.keys():
+        raise Exception("Stack %s does not exist in %s rosdistro file" % (stack, rosdistro))
+
+    conf = repos[stack]
+    rosinstall = yaml.dump([{conf['type']: {'local-name': stack, 'uri': conf['url'], 'version': conf['version']}}], default_style=False)
+    print "Rosinstall for stack %s:\n%s"%(stack, rosinstall)
+    with open(workspace+"/stack.rosinstall", 'w') as f:
+        f.write(rosinstall)
+    print "Created rosinstall file for stack %s, installing stack..."%stack
+    #TODO Figure out why rosinstall insists on having ROS available when called with nobuild, but not catkin
+    call("rosinstall %s %s/stack.rosinstall --nobuild --catkin" % (docspace, workspace))
+
+    stack_path = "%s/%s" % (docspace, stack)
+    print "Stack path %s" % stack_path
+    packages = get_stack_packages(stack_path)
+    print "Running documentation generation on packages %s" % packages
+
+    #TODO: This is not actually guaranteed to be true
+    # Need to figure out what to do for stuff like python-rospkg
+    # Replacing underscores with dashes may also not be sufficient
+    # Overall, this way of getting the apt package name is super brittle
+    # Should do something better eventually
+    deb_name = "ros-%s-%s" % (ros_distro, stack.replace('_', '-'))
+
+    #TODO: Replace with OS_PLATFORM, OS_ARCH
+    apt = AptDepends('precise', 'amd64')
+    apt_deps = apt.depends(deb_name)
+
+    print "Deps:\n%s" % apt_deps
+
+    tags = {}
+    tags[deb_name] = []
+    for package in packages:
+        html_path = os.path.abspath("%s/docs/html/%s" % (docspace, package))
+        tags_path = os.path.abspath("%s/docs/tags/%s.tag" % (docspace, package))
+        print "Documenting %s..." % package
+        #TODO remove local sourcing stuff in favor of deb installs
+        command = ['bash', '-c', 'source /opt/ros/%s/setup.bash \
+                   $$ source /home/eitan/local_installs/setup.bash \
+                   && export ROS_PACKAGE_PATH=%s:$ROS_PACKAGE_PATH \
+                   && rosdoc_lite %s -o %s -g %s -q' \
+                   %(ros_distro, stack_path, package, html_path, tags_path) ]
+        proc = subprocess.Popen(command, stdout = subprocess.PIPE)
+        proc.communicate()
+        tags[deb_name].append({'location':'%s'%tags_path, 'docs_url':'%s'%html_path})
+        print "Done"
+
+    tags_file = file('tags.yaml', 'w')
+    yaml.dump(tags, tags_file)
+
+def main():
+    arguments = sys.argv[1:]
+    ros_distro = arguments[0]
+    stack = arguments[1]
+    workspace = 'workspace'
+    docspace = 'docspace'
+    document_stack(workspace, docspace, ros_distro, stack)
+
+
+if __name__ == '__main__':
+    main()
