@@ -71,15 +71,25 @@ def call(command, envir=None):
         raise BuildException(msg)
     return res
 
-def build_tagfile(apt_deps, apt_tagfile, rosdoc_tagfile):
+def build_tagfile(apt_deps, apt_tagfile, rosdoc_tagfile, current_deb, current_package):
     #TODO: Switch to urllib
     #f = urllib.urlopen('https://raw.github.com/eitanme/rosdistro/master/releases/%s-doc.yaml'%ros_distro)
     with open(apt_tagfile, 'r') as f:
         apt_tags = yaml.load(f.read())
     tags = []
-    for dep in apt_deps:
-        if dep in apt_tags:
-            tags.extend(apt_tags[dep])
+
+    if apt_tags:
+        for dep in apt_deps:
+            if dep in apt_tags:
+                #Make sure that we don't pass our own tagfile to ourself
+                #bad things happen when we do this, we only need to perform
+                #this check for our dep
+                if dep == current_deb:
+                    for tag in apt_tags[dep]:
+                        if tag['package'] != current_package:
+                            tags.append(tag)
+                else:
+                    tags.extend(apt_tags[dep])
 
     tags_file = file(rosdoc_tagfile, 'w')
     yaml.dump(tags, tags_file)
@@ -120,12 +130,12 @@ def document_stack(workspace, docspace, ros_distro, stack):
     apt_deps = apt.depends(deb_name)
     apt_deps.append(deb_name)
 
-    #Build a tagfile list from dependencies for use by rosdoc
-    build_tagfile(apt_deps, 'tags.yaml', 'rosdoc_tags.yaml')
-
     tags = {}
     tags[deb_name] = []
     for package in packages:
+        #Build a tagfile list from dependencies for use by rosdoc
+        build_tagfile(apt_deps, 'tags.yaml', 'rosdoc_tags.yaml', deb_name, package)
+
         html_path = os.path.abspath("%s/docs/html/%s" % (docspace, package))
         #tags_path = os.path.abspath("%s/docs/tags/%s.tag" % (docspace, package))
         tags_path = os.path.abspath("tags/%s.tag" % (package))
@@ -138,11 +148,12 @@ def document_stack(workspace, docspace, ros_distro, stack):
                    %(ros_distro, stack_path, package, html_path, tags_path) ]
         proc = subprocess.Popen(command, stdout = subprocess.PIPE)
         proc.communicate()
-        tags[deb_name].append({'location':'file://%s'%tags_path, 'docs_url':'file://%s'%html_path})
+        #TODO: Fill in a reasonable docs url
+        tags[deb_name].append({'location':'file://%s'%tags_path, 'docs_url':'http://fill_in_later', 'package':'%s'%package})
         print "Done"
 
-    #tags_file = file('tags.yaml', 'w')
-    #yaml.dump(tags, tags_file)
+    tags_file = file('tags.yaml', 'w')
+    yaml.dump(tags, tags_file)
 
 def main():
     arguments = sys.argv[1:]
