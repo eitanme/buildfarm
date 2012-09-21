@@ -42,13 +42,13 @@ import subprocess
 from common import *
 
 def get_stack_packages(stack_folder):
-    paths = []
+    packages = []
 
     #Handle the case of a unary stack
     if os.path.isfile(os.path.join(stack_folder, 'manifest.xml')):
-        paths.append(stack_folder)
+        packages.append(os.path.basename(stack_folder))
         #At this point, we don't need to search through subdirectories
-        return paths
+        return packages
 
     #Get a list of all the directories in the stack folder
     #A folder is defined as a package if it contains a manifest.xml file
@@ -56,8 +56,8 @@ def get_stack_packages(stack_folder):
     subdirs = [name for name in os.listdir(stack_folder) if os.path.isdir(os.path.join(stack_folder, name))]
     for subdir in subdirs:
         if os.path.isfile(os.path.join(stack_folder, subdir, 'manifest.xml')):
-            paths.append(os.path.basename(subdir))
-    return paths
+            packages.append(os.path.basename(subdir))
+    return packages
 
 def call(command, envir=None):
     print "Executing command '%s'"%command
@@ -94,6 +94,22 @@ def build_tagfile(apt_deps, apt_tagfile, rosdoc_tagfile, current_deb, current_pa
     tags_file = file(rosdoc_tagfile, 'w')
     yaml.dump(tags, tags_file)
 
+#As far as I know, the best way to check whether a stack is catkinized or not is to 
+#download the current rosdistro for catkin and see if the name is in the rosdistro file
+def is_catkin_stack(stack_name, ros_distro):
+    f = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s.yaml'%ros_distro)
+    catkin_repos = yaml.load(f.read())['repositories']
+    return stack_name in catkin_repos
+
+def get_stack_deb_name(stack_name, catkin_stack, ros_distro):
+    if not catkin_stack:
+        # Replacing underscores with dashes may not be sufficient, but I think
+        # it is for the old deb stuff
+        return "ros-%s-%s" % (ros_distro, stack_name.replace('_', '-'))
+    else:
+        ros_dep = RosDep(ros_distro)
+        return ros_dep.to_apt(stack_name)
+
 def document_stack(workspace, docspace, ros_distro, stack):
     print "Working on distro %s and stack %s" % (ros_distro, stack)
     print "Parsing doc file for %s" % ros_distro
@@ -102,7 +118,7 @@ def document_stack(workspace, docspace, ros_distro, stack):
 
     print "Finding information for stack %s" % stack
     if not stack in repos.keys():
-        raise Exception("Stack %s does not exist in %s rosdistro file" % (stack, rosdistro))
+        raise Exception("Stack %s does not exist in %s rosdistro file" % (stack, ros_distro))
 
     conf = repos[stack]
     rosinstall = yaml.dump([{conf['type']: {'local-name': stack, 'uri': conf['url'], 'version': conf['version']}}], default_style=False)
@@ -113,17 +129,16 @@ def document_stack(workspace, docspace, ros_distro, stack):
     #TODO Figure out why rosinstall insists on having ROS available when called with nobuild, but not catkin
     call("rosinstall %s %s/stack.rosinstall --nobuild --catkin" % (docspace, workspace))
 
-    stack_path = "%s/%s" % (docspace, stack)
+    stack_path = os.path.abspath("%s/%s" % (docspace, stack))
     print "Stack path %s" % stack_path
     packages = get_stack_packages(stack_path)
     print "Running documentation generation on packages %s" % packages
 
-    #TODO: This is not actually guaranteed to be true
-    # Need to figure out what to do for stuff like python-rospkg
-    # Replacing underscores with dashes may also not be sufficient
-    # Overall, this way of getting the apt package name is super brittle
-    # Should do something better eventually
-    deb_name = "ros-%s-%s" % (ros_distro, stack.replace('_', '-'))
+    #Check whether we're using a catkin stack or not
+    catkin_stack = is_catkin_stack(stack, ros_distro)
+
+    #Get the apt name of the current stack
+    deb_name = get_stack_deb_name(stack, catkin_stack, ros_distro)
 
     #TODO: Replace with OS_PLATFORM, OS_ARCH
     apt = AptDepends('precise', 'amd64')
@@ -142,11 +157,11 @@ def document_stack(workspace, docspace, ros_distro, stack):
         print "Documenting %s..." % package
         #TODO remove local sourcing stuff in favor of deb installs
         command = ['bash', '-c', 'source /opt/ros/%s/setup.bash \
-                   $$ source /home/eitan/local_installs/setup.bash \
+                   && source /home/eitan/local_installs/setup.bash \
                    && export ROS_PACKAGE_PATH=%s:$ROS_PACKAGE_PATH \
-                   && rosdoc_lite %s -o %s -g %s -t rosdoc_tags.yaml' \
+                   && rosdoc_lite %s -o %s -g %s -t rosdoc_tags.yaml -q' \
                    %(ros_distro, stack_path, package, html_path, tags_path) ]
-        proc = subprocess.Popen(command, stdout = subprocess.PIPE)
+        proc = subprocess.Popen(command)
         proc.communicate()
         #TODO: Fill in a reasonable docs url
         tags[deb_name].append({'location':'file://%s'%tags_path, 'docs_url':'http://fill_in_later', 'package':'%s'%package})
