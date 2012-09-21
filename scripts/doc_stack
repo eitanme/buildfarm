@@ -145,8 +145,7 @@ def document_stack(workspace, docspace, ros_distro, stack):
     apt_deps = apt.depends(deb_name)
     apt_deps.append(deb_name)
 
-    tags = {}
-    tags[deb_name] = []
+    stack_tags = []
     for package in packages:
         #Build a tagfile list from dependencies for use by rosdoc
         build_tagfile(apt_deps, 'tags.yaml', 'rosdoc_tags.yaml', deb_name, package)
@@ -164,11 +163,18 @@ def document_stack(workspace, docspace, ros_distro, stack):
         proc = subprocess.Popen(command)
         proc.communicate()
         #TODO: Fill in a reasonable docs url
-        tags[deb_name].append({'location':'file://%s'%tags_path, 'docs_url':'http://fill_in_later', 'package':'%s'%package})
+        stack_tags.append({'location':'file://%s'%tags_path, 
+                               'docs_url':'http://www.ros.org/doc/%s/api/%s/html'%(ros_distro, package), 
+                               'package':'%s'%package})
         print "Done"
 
-    tags_file = file('tags.yaml', 'w')
-    yaml.dump(tags, tags_file)
+    with open('tags.yaml', 'r') as f:
+        stored_tags = yaml.load(f.read())
+
+    #Make sure that we write the new tags to the tag file
+    with open('tags.yaml', 'w') as f:
+        stored_tags[deb_name] = stack_tags
+        yaml.dump(stored_tags, f)
 
 def main():
     arguments = sys.argv[1:]
