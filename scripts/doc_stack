@@ -40,6 +40,7 @@ import sys
 import yaml
 import subprocess
 from common import *
+from tags_db import *
 
 def get_stack_packages(stack_folder):
     packages = []
@@ -71,11 +72,9 @@ def call(command, envir=None):
         raise BuildException(msg)
     return res
 
-def build_tagfile(apt_deps, apt_tagfile, rosdoc_tagfile, current_deb, current_package):
-    #TODO: Switch to urllib
-    #f = urllib.urlopen('https://raw.github.com/eitanme/rosdistro/master/releases/%s-doc.yaml'%ros_distro)
-    with open(apt_tagfile, 'r') as f:
-        apt_tags = yaml.load(f.read())
+def build_tagfile(apt_deps, tags_db, rosdoc_tagfile, current_deb, current_package):
+    #Get the relevant tags from the database
+    apt_tags = tags_db.get_stack_tags(apt_deps)
     tags = []
 
     if apt_tags:
@@ -145,14 +144,17 @@ def document_stack(workspace, docspace, ros_distro, stack):
     apt_deps = apt.depends(deb_name)
     apt_deps.append(deb_name)
 
+    #TODO: Real database name
+    tags_db = TagsDb('test.db', ros_distro)
+
     stack_tags = []
     for package in packages:
         #Build a tagfile list from dependencies for use by rosdoc
-        build_tagfile(apt_deps, 'tags.yaml', 'rosdoc_tags.yaml', deb_name, package)
+        build_tagfile(apt_deps, tags_db, 'rosdoc_tags.yaml', deb_name, package)
 
-        html_path = os.path.abspath("%s/docs/html/%s" % (docspace, package))
+        html_path = os.path.abspath("%s/doc/%s/api/%s/html" % (docspace, ros_distro, package))
         #tags_path = os.path.abspath("%s/docs/tags/%s.tag" % (docspace, package))
-        tags_path = os.path.abspath("tags/%s.tag" % (package))
+        tags_path = os.path.abspath("%s/doc/%s/api/%s/tags/%s.tag" % (docspace, ros_distro, package, package))
         print "Documenting %s..." % package
         #TODO remove local sourcing stuff in favor of deb installs
         command = ['bash', '-c', 'source /opt/ros/%s/setup.bash \
@@ -160,7 +162,7 @@ def document_stack(workspace, docspace, ros_distro, stack):
                    && export ROS_PACKAGE_PATH=%s:$ROS_PACKAGE_PATH \
                    && rosdoc_lite %s -o %s -g %s -t rosdoc_tags.yaml -q' \
                    %(ros_distro, stack_path, package, html_path, tags_path) ]
-        proc = subprocess.Popen(command)
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE)
         proc.communicate()
         #TODO: Fill in a reasonable docs url
         stack_tags.append({'location':'file://%s'%tags_path, 
@@ -168,13 +170,8 @@ def document_stack(workspace, docspace, ros_distro, stack):
                                'package':'%s'%package})
         print "Done"
 
-    with open('tags.yaml', 'r') as f:
-        stored_tags = yaml.load(f.read())
-
-    #Make sure that we write the new tags to the tag file
-    with open('tags.yaml', 'w') as f:
-        stored_tags[deb_name] = stack_tags
-        yaml.dump(stored_tags, f)
+    #Write the new tags to the database
+    tags_db.write_stack_tags(deb_name, stack_tags)
 
 def main():
     arguments = sys.argv[1:]
