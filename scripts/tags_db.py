@@ -42,7 +42,8 @@ class TagsDb(object):
     def __init__(self, distro_name, workspace):
         self.distro_name = distro_name
         self.path  = os.path.abspath(os.path.join(workspace, 'rosdoc_tag_index'))
-        shutil.rmtree(self.path)
+        if os.path.exists(self.path):
+            shutil.rmtree(self.path)
         call("ssh-add ssh_keys/id_rsa")
         call("git clone git@github.com:eitanme/rosdoc_tag_index.git %s" % self.path)
 
