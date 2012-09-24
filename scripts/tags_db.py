@@ -31,54 +31,45 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-import sqlite3
+import yaml
+import urllib
+import os
+import shutil
+from common import *
+import subprocess
 
 class TagsDb(object):
-    def create_distro_table(db_name, distro_name):
-        conn = sqlite3.connect(db_name)
-        c = conn.cursor()
-        c.execute('create table %s (deb_name text, docs_url text, location text, package text)' % distro_name)
-        conn.commit()
-        c.close()
-    create_distro_table = staticmethod(create_distro_table)
-
-    def __init__(self, db_name, distro_name):
-        self.db_name = db_name
+    def __init__(self, distro_name, workspace):
         self.distro_name = distro_name
+        self.path  = os.path.abspath(os.path.join(workspace, 'rosdoc_tag_index'))
+        shutil.rmtree(self.path)
+        call("ssh-add ssh_keys/id_rsa")
+        call("git clone git@github.com:eitanme/rosdoc_tag_index.git %s" % self.path)
 
     #Get all the tag locations for a list of stacks
-    def get_stack_tags(self, stack_names):
+    def get_stack_tags(self):
         tags = {}
-        conn = sqlite3.connect(self.db_name)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        for name in stack_names:
-            #Get all entries for a given deb
-            c.execute('select * from %s where deb_name = ?' % self.distro_name, (name,))
-            rows = c.fetchall()
-            if len(rows) > 0:
-                tags[name] = []
-                for r in rows:
-                    tags[name].append({'docs_url':r['docs_url'], 'location':r['location'], 'package':r['package']})
-        conn.commit()
-        c.close()
+        with open(os.path.join(self.path, "%s.yaml" % self.distro_name), 'r') as f:
+            tags = yaml.load(f)
         return tags
 
     #Write new tag locations for a list of stacks
     def write_stack_tags(self, stack_name, tags):
-        conn = sqlite3.connect(self.db_name)
-        c = conn.cursor()
-        #First, we need to delete all the old entries for this stack
-        c.execute('delete from  %s where deb_name = ?' % self.distro_name, (stack_name,))
-        for tag in tags:
-            c.execute('insert into %s (deb_name, docs_url, location, package) \
-                      values (?, ?, ?, ?)' % self.distro_name, 
-                                             (stack_name, 
-                                             tag['docs_url'], 
-                                             tag['location'],
-                                             tag['package']))
-        conn.commit()
-        c.close()
+        current_tags = self.get_stack_tags()
+        if not current_tags:
+            current_tags = {}
 
+        current_tags[stack_name] = tags
 
+        with open(os.path.join(self.path, "%s.yaml" % self.distro_name), 'w') as f:
+            yaml.dump(current_tags, f)
+
+        old_dir = os.getcwd()
+        os.chdir(self.path)
+        print "Commiting changes to tags list...."
+        command = ['git', 'commit', '-a', '-m', 'Updating tags list for %s, stack %s' % (self.distro_name, stack_name)]
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+        call("git pull origin master")
+        call("git push origin master")
+        os.chdir(old_dir)
 
