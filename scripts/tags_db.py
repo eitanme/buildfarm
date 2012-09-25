@@ -40,12 +40,21 @@ import subprocess
 
 class TagsDb(object):
     def __init__(self, distro_name, workspace):
+        self.workspace = workspace
         self.distro_name = distro_name
-        self.path  = os.path.abspath(os.path.join(workspace, 'rosdoc_tag_index'))
+        self.path  = os.path.abspath(os.path.join(self.workspace, 'rosdoc_tag_index'))
         if os.path.exists(self.path):
             shutil.rmtree(self.path)
-        call("ssh-add ssh_keys/id_rsa")
-        call("git clone git@github.com:eitanme/rosdoc_tag_index.git %s" % self.path)
+        command = ['bash', '-c', 'eval `ssh-agent` \
+                   && ssh-add %s/buildfarm/scripts/ssh_keys/id_rsa \
+                   && git clone git@github.com:eitanme/rosdoc_tag_index.git %s' \
+                   %(workspace, self.path) ]
+
+        proc = subprocess.Popen(command)
+        proc.communicate()
+        #call("eval `ssh-agent`")
+        #call("ssh-add %s/buildfarm/scripts/ssh_keys/id_rsa" % workspace)
+        #call("git clone git@github.com:eitanme/rosdoc_tag_index.git %s" % self.path)
 
     #Get all the tag locations for a list of stacks
     def get_stack_tags(self):
@@ -70,7 +79,13 @@ class TagsDb(object):
         print "Commiting changes to tags list...."
         command = ['git', 'commit', '-a', '-m', 'Updating tags list for %s, stack %s' % (self.distro_name, stack_name)]
         proc = subprocess.Popen(command, stdout=subprocess.PIPE)
-        call("git pull origin master")
-        call("git push origin master")
+        command = ['bash', '-c', 'eval `ssh-agent` \
+                   && ssh-add %s/buildfarm/scripts/ssh_keys/id_rsa \
+                   && git pull origin master \
+                   && git push origin master' \
+                   %(self.workspace) ]
+
+        proc = subprocess.Popen(command)
+        proc.communicate()
         os.chdir(old_dir)
 

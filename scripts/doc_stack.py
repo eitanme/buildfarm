@@ -33,7 +33,6 @@
 #
 # Revision $Id: rosdoc 11469 2010-10-12 00:56:25Z kwc $
 
-import rosdoc_lite
 import urllib
 import os
 import sys
@@ -97,7 +96,7 @@ def get_stack_deb_name(stack_name, catkin_stack, ros_distro):
         ros_dep = RosDep(ros_distro)
         return ros_dep.to_apt(stack_name)
 
-def document_stack(workspace, docspace, ros_distro, stack):
+def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     print "Working on distro %s and stack %s" % (ros_distro, stack)
     print "Parsing doc file for %s" % ros_distro
     f = urllib.urlopen('https://raw.github.com/eitanme/rosdistro/master/releases/%s-doc.yaml'%ros_distro)
@@ -127,12 +126,16 @@ def document_stack(workspace, docspace, ros_distro, stack):
     #Get the apt name of the current stack
     deb_name = get_stack_deb_name(stack, catkin_stack, ros_distro)
 
-    #TODO: Replace with OS_PLATFORM, OS_ARCH
-    apt = AptDepends('precise', 'amd64')
+    apt = AptDepends(platform, arch)
     apt_deps = apt.depends(deb_name)
     apt_deps.append(deb_name)
 
-    #TODO: Real database name
+    print "Installing all dependencies for %s" % stack
+    if apt_deps:
+        call("apt-get install %s --yes" % (' '.join(apt_deps)))
+    print "Done installing dependencies"
+
+    #Load information about existing tags
     tags_db = TagsDb(ros_distro, workspace)
 
     stack_tags = []
@@ -142,22 +145,24 @@ def document_stack(workspace, docspace, ros_distro, stack):
 
         html_path = os.path.abspath("%s/doc/%s/api/%s/html" % (docspace, ros_distro, package))
         #tags_path = os.path.abspath("%s/docs/tags/%s.tag" % (docspace, package))
-        tags_path = os.path.abspath("%s/doc/%s/api/%s/tags/%s.tag" % (docspace, ros_distro, package, package))
+        relative_tags_path = "%s/api/%s/tags/%s.tag" % (ros_distro, package, package)
+        tags_path = os.path.abspath("%s/doc/%s" % (docspace, relative_tags_path))
         print "Documenting %s..." % package
-        #TODO remove local sourcing stuff in favor of deb installs
+        #Generate the command we'll use to document the stack
         command = ['bash', '-c', 'source /opt/ros/%s/setup.bash \
-                   && source /home/eitan/local_installs/setup.bash \
                    && export ROS_PACKAGE_PATH=%s:$ROS_PACKAGE_PATH \
                    && rosdoc_lite %s -o %s -g %s -t rosdoc_tags.yaml -q' \
                    %(ros_distro, stack_path, package, html_path, tags_path) ]
         proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+        #proc = subprocess.Popen(command, stdout=subprocess.PIPE)
         proc.communicate()
-        stack_tags.append({'location':'file://%s'%tags_path, 
+        stack_tags.append({'location':'http://localhost/%s'%relative_tags_path, 
                                'docs_url':'../../../api/%s/html'%(package), 
                                'package':'%s'%package})
         print "Done"
 
     doc_path = os.path.abspath("%s/doc/%s" % (docspace, ros_distro))
+
     #TODO, fix location: Copy the files to the appropriate place
     call("rsync -qr %s eitan@grizzly:/var/www/" % (doc_path))
 
@@ -170,7 +175,7 @@ def main():
     stack = arguments[1]
     workspace = 'workspace'
     docspace = 'docspace'
-    document_stack(workspace, docspace, ros_distro, stack)
+    document_stack(workspace, docspace, ros_distro, stack, 'precise', 'amd64')
 
 
 if __name__ == '__main__':
