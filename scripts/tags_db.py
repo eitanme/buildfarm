@@ -47,8 +47,9 @@ class TagsDb(object):
             shutil.rmtree(self.path)
         command = ['bash', '-c', 'eval `ssh-agent` \
                    && ssh-add %s/buildfarm/scripts/ssh_keys/id_rsa \
+                   && export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
                    && git clone git@github.com:eitanme/rosdoc_tag_index.git %s' \
-                   %(workspace, self.path) ]
+                   %(workspace, workspace, self.path) ]
 
         proc = subprocess.Popen(command)
         proc.communicate()
@@ -81,9 +82,10 @@ class TagsDb(object):
         proc = subprocess.Popen(command, stdout=subprocess.PIPE)
         command = ['bash', '-c', 'eval `ssh-agent` \
                    && ssh-add %s/buildfarm/scripts/ssh_keys/id_rsa \
+                   && export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
                    && git pull origin master \
                    && git push origin master' \
-                   %(self.workspace) ]
+                   %(self.workspace, self.workspace) ]
 
         proc = subprocess.Popen(command)
         proc.communicate()

@@ -156,7 +156,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         proc = subprocess.Popen(command, stdout=subprocess.PIPE)
         #proc = subprocess.Popen(command, stdout=subprocess.PIPE)
         proc.communicate()
-        stack_tags.append({'location':'http://localhost/%s'%relative_tags_path, 
+        stack_tags.append({'location':'http://localhost/doc_tests/%s'%relative_tags_path, 
                                'docs_url':'../../../api/%s/html'%(package), 
                                'package':'%s'%package})
         print "Done"
@@ -164,7 +164,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     doc_path = os.path.abspath("%s/doc/%s" % (docspace, ros_distro))
 
     #TODO, fix location: Copy the files to the appropriate place
-    call("rsync -qr %s eitan@grizzly:/var/www/" % (doc_path))
+    call("rsync -qr %s eitan@localhost:/var/www/doc_tests" % (doc_path))
 
     #Write the new tags to the database
     tags_db.write_stack_tags(deb_name, stack_tags)
