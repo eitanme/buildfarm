@@ -10,4 +10,7 @@ Usage
 =====================================================
 The ``doc`` script takes two arguments:
  * distro - The ROS distribution on which to run (Ex: fuerte)
- * stack - The name of the stack to document
+ * stack - The name of the stack to document (Ex: actionlib)
+
+ The ``doc`` script is run using the standard jenkins buildfarm tools. For example, to run documentation  for fuerte actionlib locally in a chroot for 32-bit Ubunutu Precise, the following command could be used:
+      % ./run_local_debug precise i386 /home/eitan/hidof/willow_garage/jenkins_workspace doc fuerte navigation
