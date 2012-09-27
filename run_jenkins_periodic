@@ -16,6 +16,14 @@ def main():
         print "Usage: %s ubuntu_distro arch job_name email {continuous/nightly/daily/weekly/monthly} script [script_args]"%(sys.argv[0])
         sys.exit(0)
     
+    # create hudson instance                                                                                                            
+    try:
+        with open(CONFIG_PATH_LOCAL) as f:
+            info = f.read().split(',')
+    except:
+        info = urllib.urlopen(CONFIG_PATH).read().split(',')
+    jenkins_instance = jenkins.Jenkins(SERVER, info[0], info[1])
+    
     # open template xlm file
     f = urllib.urlopen('https://raw.github.com/willowgarage/buildfarm/master/templates/jenkins_template.xml')
     job_xml = f.read()
@@ -35,19 +43,12 @@ def main():
     params['SCRIPT_ARGS'] = ' '.join(sys.argv[7:])
     params['VCS'] = jc['vcs']['none']
     params['TIME'] = str(datetime.datetime.now())
+    params['USERNAME'] = info[0]
 
-    # replace @xxx@ in template file
+    # replace @(xxx) in template file
     for key, value in params.iteritems():
-        job_xml = job_xml.replace("@%s@"%key, value)
+        job_xml = job_xml.replace("@(%s)"%key, value)
 
-    # create hudson instance                                                                                                            
-    try:
-        with open(CONFIG_PATH_LOCAL) as f:
-            info = f.read().split(',')
-    except:
-        info = urllib.urlopen(CONFIG_PATH).read().split(',')
-    jenkins_instance = jenkins.Jenkins(SERVER, info[0], info[1])
-    
     # schedule a new job
     job_name = sys.argv[3]
     job_name = "%s-%s-%s-%s"%(params['SCRIPT'], job_name, params['UBUNTU_DISTRO'], params['ARCH'])
