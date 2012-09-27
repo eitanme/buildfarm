@@ -16,7 +16,7 @@ def main():
         print "Usage: %s ubuntu_distro arch job_name email script [script_args]"%(sys.argv[0])
         sys.exit(0)
     
-    # create hudson instance                                                                                                            
+    # create hudson instance 
     with open(os.path.join(environment.get_ros_home(), 'catkin-debs', 'server.yaml')) as f:
         info = yaml.load(f)
     jenkins_instance = jenkins.Jenkins(SERVER, info['username'], info['password'])
