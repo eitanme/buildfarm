@@ -57,13 +57,8 @@ def main():
     call("apt-key add %s/ros.key"%workspace)
     call("apt-get update")
 
-    command = ['bash', '-c', 'ls -al ~/.ssh']
-    proc = subprocess.Popen(command)
-    proc.communicate()
-
-    command = ['bash', '-c', 'cat ~/.ssh/id_rsa.pub']
-    proc = subprocess.Popen(command)
-    proc.communicate()
+    call("ls -al ~/.ssh")
+    call("cat ~/.ssh/id_rsa.pub")
 
     print "SSSSSSSSSSSSSSSSHHHHHHHHHHHHHHHHHHHHHHHHHHHHH ABOVE"
 
