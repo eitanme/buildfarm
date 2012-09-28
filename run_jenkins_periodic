@@ -5,9 +5,9 @@ import jenkins
 import urllib
 import yaml
 import datetime
+import os
+from rospkg import environment
 
-CONFIG_PATH_LOCAL = '/home/willow/hds.xml'
-CONFIG_PATH = 'http://wgs24.willowgarage.com/hudson-html/hds.xml'
 SERVER = 'http://jenkins.willowgarage.com:8080/'
 
 # Schedule a set of jobs in Jenkins
@@ -15,6 +15,11 @@ def main():
     if len(sys.argv) < 7:
         print "Usage: %s ubuntu_distro arch job_name email {continuous/nightly/daily/weekly/monthly} script [script_args]"%(sys.argv[0])
         sys.exit(0)
+    
+    # create hudson instance 
+    with open(os.path.join(environment.get_ros_home(), 'catkin-debs', 'server.yaml')) as f:
+        info = yaml.load(f)
+    jenkins_instance = jenkins.Jenkins(SERVER, info['username'], info['password'])
     
     # open template xlm file
     f = urllib.urlopen('https://raw.github.com/willowgarage/buildfarm/master/templates/jenkins_template.xml')
@@ -35,19 +40,13 @@ def main():
     params['SCRIPT_ARGS'] = ' '.join(sys.argv[7:])
     params['VCS'] = jc['vcs']['none']
     params['TIME'] = str(datetime.datetime.now())
+    params['USERNAME'] = info['username']
+    params['HOSTNAME'] = os.uname()[1]
 
-    # replace @xxx@ in template file
+    # replace @(xxx) in template file
     for key, value in params.iteritems():
-        job_xml = job_xml.replace("@%s@"%key, value)
+        job_xml = job_xml.replace("@(%s)"%key, value)
 
-    # create hudson instance                                                                                                            
-    try:
-        with open(CONFIG_PATH_LOCAL) as f:
-            info = f.read().split(',')
-    except:
-        info = urllib.urlopen(CONFIG_PATH).read().split(',')
-    jenkins_instance = jenkins.Jenkins(SERVER, info[0], info[1])
-    
     # schedule a new job
     job_name = sys.argv[3]
     job_name = "%s-%s-%s-%s"%(params['SCRIPT'], job_name, params['UBUNTU_DISTRO'], params['ARCH'])
