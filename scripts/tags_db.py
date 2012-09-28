@@ -45,11 +45,15 @@ class TagsDb(object):
         self.path  = os.path.abspath(os.path.join(self.workspace, 'rosdoc_tag_index'))
         if os.path.exists(self.path):
             shutil.rmtree(self.path)
-        command = ['bash', '-c', 'eval `ssh-agent` \
-                   && ssh-add %s/buildfarm/scripts/ssh_keys/id_rsa \
-                   && export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
+        #command = ['bash', '-c', 'eval `ssh-agent` \
+        #           && ssh-add %s/buildfarm/scripts/ssh_keys/id_rsa \
+        #           && export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
+        #           && git clone git@github.com:eitanme/rosdoc_tag_index.git %s' \
+        #           %(workspace, workspace, self.path) ]
+
+        command = ['bash', '-c', 'export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
                    && git clone git@github.com:eitanme/rosdoc_tag_index.git %s' \
-                   %(workspace, workspace, self.path) ]
+                   %(workspace, self.path) ]
 
         proc = subprocess.Popen(command)
         proc.communicate()
@@ -80,12 +84,17 @@ class TagsDb(object):
         print "Commiting changes to tags list...."
         command = ['git', 'commit', '-a', '-m', 'Updating tags list for %s, stack %s' % (self.distro_name, stack_name)]
         proc = subprocess.Popen(command, stdout=subprocess.PIPE)
-        command = ['bash', '-c', 'eval `ssh-agent` \
-                   && ssh-add %s/buildfarm/scripts/ssh_keys/id_rsa \
-                   && export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
+        #command = ['bash', '-c', 'eval `ssh-agent` \
+        #           && ssh-add %s/buildfarm/scripts/ssh_keys/id_rsa \
+        #           && export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
+        #           && git pull origin master \
+        #           && git push origin master' \
+        #           %(self.workspace, self.workspace) ]
+
+        command = ['bash', '-c', 'export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
                    && git pull origin master \
                    && git push origin master' \
-                   %(self.workspace, self.workspace) ]
+                   %(self.workspace) ]
 
         proc = subprocess.Popen(command)
         proc.communicate()

@@ -38,6 +38,7 @@ import os
 import sys
 import yaml
 import subprocess
+import fnmatch
 from common import *
 from tags_db import *
 
@@ -53,11 +54,30 @@ def get_stack_packages(stack_folder):
     #Get a list of all the directories in the stack folder
     #A folder is defined as a package if it contains a manifest.xml file
     print "Getting the packages that are a part of a given stack %s..." % stack_folder
-    subdirs = [name for name in os.listdir(stack_folder) if os.path.isdir(os.path.join(stack_folder, name))]
-    for subdir in subdirs:
-        if os.path.isfile(os.path.join(stack_folder, subdir, 'manifest.xml')):
-            packages.append(os.path.basename(subdir))
+    for root, dirnames, filenames in os.walk(stack_folder):
+        if fnmatch.filter(filenames, 'manifest.xml'):
+            packages.append(os.path.basename(root))
+
     return packages
+
+
+#def get_stack_packages(stack_folder):
+#    packages = []
+#
+#    #Handle the case of a unary stack
+#    if os.path.isfile(os.path.join(stack_folder, 'manifest.xml')):
+#        packages.append(os.path.basename(stack_folder))
+#        #At this point, we don't need to search through subdirectories
+#        return packages
+#
+#    #Get a list of all the directories in the stack folder
+#    #A folder is defined as a package if it contains a manifest.xml file
+#    print "Getting the packages that are a part of a given stack %s..." % stack_folder
+#    subdirs = [name for name in os.listdir(stack_folder) if os.path.isdir(os.path.join(stack_folder, name))]
+#    for subdir in subdirs:
+#        if os.path.isfile(os.path.join(stack_folder, subdir, 'manifest.xml')):
+#            packages.append(os.path.basename(subdir))
+#    return packages
 
 def build_tagfile(apt_deps, tags_db, rosdoc_tagfile, current_deb, current_package):
     #Get the relevant tags from the database
@@ -151,20 +171,24 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         #Generate the command we'll use to document the stack
         command = ['bash', '-c', 'source /opt/ros/%s/setup.bash \
                    && export ROS_PACKAGE_PATH=%s:$ROS_PACKAGE_PATH \
-                   && rosdoc_lite %s -o %s -g %s -t rosdoc_tags.yaml -q' \
+                   && rosdoc_lite %s -o %s -g %s -t rosdoc_tags.yaml' \
                    %(ros_distro, stack_path, package, html_path, tags_path) ]
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE)
         #proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+        proc = subprocess.Popen(command)
         proc.communicate()
-        stack_tags.append({'location':'http://localhost/doc_tests/%s'%relative_tags_path, 
-                               'docs_url':'../../../api/%s/html'%(package), 
-                               'package':'%s'%package})
+
+        #Some doc runs won't generate tag files, so we need to check if they
+        #exist before adding them to the list
+        if(os.path.exists(tags_path)):
+            stack_tags.append({'location':'http://packages.ros.org/doctest/%s'%relative_tags_path, 
+                                   'docs_url':'../../../api/%s/html'%(package), 
+                                   'package':'%s'%package})
         print "Done"
 
     doc_path = os.path.abspath("%s/doc/%s" % (docspace, ros_distro))
 
     #TODO, fix location: Copy the files to the appropriate place
-    call("rsync -qr %s eitan@localhost:/var/www/doc_tests" % (doc_path))
+    call("rsync -qr %s rosdoc@pub8:/var/www/packages.ros.org/html/doctest" % (doc_path))
 
     #Write the new tags to the database
     tags_db.write_stack_tags(deb_name, stack_tags)
@@ -173,7 +197,7 @@ def main():
     arguments = sys.argv[1:]
     ros_distro = arguments[0]
     stack = arguments[1]
-    workspace = 'workspace'
+    workspace = '/home/eitan/hidof/willow'
     docspace = 'docspace'
     document_stack(workspace, docspace, ros_distro, stack, 'precise', 'amd64')
 
