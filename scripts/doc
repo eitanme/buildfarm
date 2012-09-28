@@ -57,6 +57,17 @@ def main():
     call("apt-key add %s/ros.key"%workspace)
     call("apt-get update")
 
+    command = ['bash', '-c', 'ls -al ~/.ssh']
+    proc = subprocess.Popen(command)
+    proc.communicate()
+
+    command = ['bash', '-c', 'cat ~/.ssh/id_rsa.pub']
+    proc = subprocess.Popen(command)
+    proc.communicate()
+
+    print "SSSSSSSSSSSSSSSSHHHHHHHHHHHHHHHHHHHHHHHHHHHHH ABOVE"
+
+
     # install vcs tools
     print "Installing vcs tools..."
     call("apt-get install mercurial --yes")
