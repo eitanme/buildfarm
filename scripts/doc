@@ -57,7 +57,7 @@ def main():
     call("apt-key add %s/ros.key"%workspace)
     call("apt-get update")
 
-    call("ls -al ~/.ssh")
+    call("ls -al /root/.ssh")
     call("cat ~/.ssh/id_rsa.pub")
 
     print "SSSSSSSSSSSSSSSSHHHHHHHHHHHHHHHHHHHHHHHHHHHHH ABOVE"
