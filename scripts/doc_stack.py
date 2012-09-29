@@ -188,7 +188,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     doc_path = os.path.abspath("%s/doc/%s" % (docspace, ros_distro))
 
     #TODO, fix location: Copy the files to the appropriate place
-    call("rsync -qr %s rosdoc@pub8:/var/www/packages.ros.org/html/doctest" % (doc_path))
+    call("rsync -qr %s rosbuild@wgs32:/var/www/www.ros.org/html/rosdoclite" % (doc_path))
 
     #Write the new tags to the database
     tags_db.write_stack_tags(deb_name, stack_tags)
