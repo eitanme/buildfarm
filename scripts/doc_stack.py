@@ -180,7 +180,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         #Some doc runs won't generate tag files, so we need to check if they
         #exist before adding them to the list
         if(os.path.exists(tags_path)):
-            stack_tags.append({'location':'http://packages.ros.org/doctest/%s'%relative_tags_path, 
+            stack_tags.append({'location':'http://ros.org/rosdoclite/%s'%relative_tags_path, 
                                    'docs_url':'../../../api/%s/html'%(package), 
                                    'package':'%s'%package})
         print "Done"
