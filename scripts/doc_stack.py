@@ -187,11 +187,22 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
 
     doc_path = os.path.abspath("%s/doc/%s" % (docspace, ros_distro))
 
-    #TODO, fix location: Copy the files to the appropriate place
+    #Copy the files to the appropriate place
     call("rsync -qr %s rosbuild@wgs32:/var/www/www.ros.org/html/rosdoclite" % (doc_path))
 
     #Write the new tags to the database
     tags_db.write_stack_tags(deb_name, stack_tags)
+
+    #Tell jenkins that we've succeeded
+    print "Preparing xml test results"
+    try:
+        os.makedirs(os.path.join(workspace, 'test_results'))
+        print "Created test results directory"
+    except:
+        pass
+
+    call("cp %s %s"%(os.path.join(workspace, 'buildfarm/templates/junit_dummy_ouput_template.xml'),
+                     os.path.join(workspace, 'test_results/')))
 
 def main():
     arguments = sys.argv[1:]
