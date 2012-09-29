@@ -105,7 +105,7 @@ rm -rf $tmpdir
 
 sudo pbuilder execute \
     --basetgz $basetgz \
-    --bindmounts "/var/cache/pbuilder/ccache $WORKSPACE" \
+    --bindmounts "/var/cache/pbuilder/ccache $WORKSPACE $HOME/.ssh" \
     --inputfile $WORKSPACE/buildfarm/$SCRIPT \
     -- $WORKSPACE/pbuilder-env.sh $SCRIPT
 
