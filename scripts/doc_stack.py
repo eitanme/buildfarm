@@ -111,9 +111,10 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
 
     #svn encodes the version in the url
     if not 'version' in conf:
-        conf['version'] = 'dummy'
+        rosinstall = yaml.dump([{conf['type']: {'local-name': stack, 'uri': conf['url']}}], default_style=False)
+    else:
+        rosinstall = yaml.dump([{conf['type']: {'local-name': stack, 'uri': conf['url'], 'version': conf['version']}}], default_style=False)
 
-    rosinstall = yaml.dump([{conf['type']: {'local-name': stack, 'uri': conf['url'], 'version': conf['version']}}], default_style=False)
     print "Rosinstall for stack %s:\n%s"%(stack, rosinstall)
     with open(workspace+"/stack.rosinstall", 'w') as f:
         f.write(rosinstall)
