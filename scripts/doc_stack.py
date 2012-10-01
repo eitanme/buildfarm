@@ -60,25 +60,6 @@ def get_stack_packages(stack_folder):
 
     return packages
 
-
-#def get_stack_packages(stack_folder):
-#    packages = []
-#
-#    #Handle the case of a unary stack
-#    if os.path.isfile(os.path.join(stack_folder, 'manifest.xml')):
-#        packages.append(os.path.basename(stack_folder))
-#        #At this point, we don't need to search through subdirectories
-#        return packages
-#
-#    #Get a list of all the directories in the stack folder
-#    #A folder is defined as a package if it contains a manifest.xml file
-#    print "Getting the packages that are a part of a given stack %s..." % stack_folder
-#    subdirs = [name for name in os.listdir(stack_folder) if os.path.isdir(os.path.join(stack_folder, name))]
-#    for subdir in subdirs:
-#        if os.path.isfile(os.path.join(stack_folder, subdir, 'manifest.xml')):
-#            packages.append(os.path.basename(subdir))
-#    return packages
-
 def build_tagfile(apt_deps, tags_db, rosdoc_tagfile, current_deb, current_package):
     #Get the relevant tags from the database
     apt_tags = tags_db.get_stack_tags()
@@ -127,6 +108,11 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         raise Exception("Stack %s does not exist in %s rosdistro file" % (stack, ros_distro))
 
     conf = repos[stack]
+
+    #svn encodes the version in the url
+    if not 'version' in conf:
+        conf['version'] = 'dummy'
+
     rosinstall = yaml.dump([{conf['type']: {'local-name': stack, 'uri': conf['url'], 'version': conf['version']}}], default_style=False)
     print "Rosinstall for stack %s:\n%s"%(stack, rosinstall)
     with open(workspace+"/stack.rosinstall", 'w') as f:
