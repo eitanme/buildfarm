@@ -28,16 +28,16 @@ def call(command, envir=None):
 def get_dependencies(stack_folder):
     # get the stack dependencies
     print "Get the dependencies of stack in folder %s"%stack_folder
-    try:
-        print "Parsing stack.xml..."
-        root = ElementTree(None, os.path.join(stack_folder, 'stack.xml'))
-        stack_dependencies = [d.text for d in root.findall('depends')]
-        system_dependencies = [d.text for d in root.findall('build_depends')]
-        print "Stack Dependencies: %s"%(' '.join(stack_dependencies))
-        print "System Dependencies: %s"%(' '.join(system_dependencies))
-        return stack_dependencies + system_dependencies
-    except Exception, ex:
-        raise BuildException("Failed to parse stack.xml of stack in folder %s"%stack_folder)
+    print sys.path
+    sys.path.append("/usr/lib/pymodules/python2.7/")
+    from catkin_pkg import packages
+    pkgs = packages.find_packages(stack_folder)
+    depends = []
+    for name, pkg in pkgs.iteritems():
+        for d in pkg.build_depends + pkg.test_depends:
+            if not d.name in depends:
+                depends.append(d.name)
+    return depends
 
 
 def get_ros_env(setup_file):
@@ -121,7 +121,7 @@ def main():
         print "Working on distro %s and stacks %s"%(ros_distro, stack)
 
     workspace = os.environ['WORKSPACE']
-    sourcespace = os.path.join('/tmp', str(datetime.datetime.now()).replace(' ','_').replace(':','.'))
+    sourcespace = os.path.join(workspace, 'tmp', str(datetime.datetime.now()).replace(' ','_').replace(':','.'))
     stackbuildspace = os.path.join(sourcespace, 'build_stack')
     os.makedirs(sourcespace)
 
@@ -133,9 +133,9 @@ def main():
     call("apt-key add %s/ros.key"%workspace)
     call("apt-get update")
 
-    # install vcs tools
-    print "Installing vcs tools"
-    call("apt-get install mercurial subversion --yes")
+    # install prerequisits
+    print "Installing prerequisits"
+    call("apt-get install mercurial subversion python-catkin-pkg python-support --yes")
 
     # Create rosdep object
     print "Create rosdep object"
@@ -204,5 +204,7 @@ if __name__ == '__main__':
         print ex.msg
 
     except Exception as ex:
-        print "Devel Test Failed. Check out the console output above for details."
-        sys.exit(-1)
+        print "Devel Test Failed. Check out the consule output for details"
+        raise ex
+
+

@@ -38,7 +38,7 @@ export UBUNTU_DISTRO=$UBUNTU_DISTRO
 export ARCH=$ARCH
 
 export WORKSPACE=$WORKSPACE
-export PYTHONPATH=$WORKSPACE/catkin-debs/src/buildfarm
+export PYTHONPATH=$WORKSPACE/catkin-debs/src/buildfarm:$PYTHONPATH
 
 if [ -d \$HOME/.ssh ]; then
   cp -a \$HOME/.ssh /root
