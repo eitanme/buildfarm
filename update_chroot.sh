@@ -4,7 +4,7 @@
 /bin/echo $*
 id
 
-apt-get install -y python-setuptools ccache wget curl curl-ssl sudo git-buildpackage dput python-yaml python-pip python-support 
+apt-get install -y python-setuptools ccache wget curl curl-ssl sudo git-buildpackage dput python-yaml python-pip python-support python-setuptools
 
 case $1 in
     fat)
