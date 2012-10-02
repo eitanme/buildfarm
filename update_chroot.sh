@@ -4,7 +4,7 @@
 /bin/echo $*
 id
 
-apt-get install -y python-setuptools ccache wget curl curl-ssl sudo git-buildpackage dput python-yaml python-pip
+apt-get install -y python-setuptools ccache wget curl curl-ssl sudo git-buildpackage dput python-yaml python-pip python-support 
 
 pip install -U rosinstall > /dev/null
 pip install -U sphinx > /dev/null
