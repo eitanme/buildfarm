@@ -6,12 +6,6 @@ id
 
 apt-get install -y python-setuptools ccache wget curl curl-ssl sudo git-buildpackage dput python-yaml python-pip python-support 
 
-sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $DISTRO main" > /etc/apt/sources.list.d/ros-latest.list'
-wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
-
-apt-get update
-apt-get install python-rosinstall
-
 case $1 in
     fat)
         apt-get install -y wget git-core mercurial subversion \
