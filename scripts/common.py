@@ -1,6 +1,8 @@
 import urllib
 import os
 import subprocess
+import sys
+import fnmatch
 from xml.etree.ElementTree import ElementTree
 
 class AptDepends:
@@ -74,6 +76,27 @@ class RosDep:
 
 
 
+def copy_test_results(workspace, buildspace):
+    print "Preparing xml test results"
+    try:
+        os.makedirs(os.path.join(workspace, 'test_results'))
+        print "Created test results directory"
+    except:
+        pass
+    os.chdir(os.path.join(workspace, 'test_results'))
+    print "Copy all test results"
+    count = 0
+    for root, dirnames, filenames in os.walk(os.path.join(buildspace, 'test_results')):
+        for filename in fnmatch.filter(filenames, '*.xml'):
+            call("cp %s %s/test_results/"%(os.path.join(root, filename), workspace))
+            count += 1
+    if count == 0:
+        print "No test results, so I'll create a dummy test result xml file"
+        call("cp %s %s"%(os.path.join(workspace, 'buildfarm/templates/junit_dummy_ouput_template.xml'),
+                         os.path.join(workspace, 'test_results/')))
+
+
+
 def get_ros_env(setup_file):
     ros_env = os.environ
     print "Retrieve the ROS build environment by sourcing %s"%setup_file
@@ -106,16 +129,18 @@ def call(command, envir=None):
 def get_dependencies(stack_folder):
     # get the stack dependencies
     print "Get the dependencies of stack in folder %s"%stack_folder
-    try:
-        print "Parsing stack.xml..."
-        root = ElementTree(None, os.path.join(stack_folder, 'stack.xml'))
-        stack_dependencies = [d.text for d in root.findall('depends')]
-        system_dependencies = [d.text for d in root.findall('build_depends')]
-        print "Stack Dependencies: %s"%(' '.join(stack_dependencies))
-        print "System Dependencies: %s"%(' '.join(system_dependencies))
-        return stack_dependencies + system_dependencies
-    except Exception, ex:
-        raise BuildException("Failed to parse stack.xml of stack in folder %s"%stack_folder)
+    print sys.path
+    sys.path.append("/usr/lib/pymodules/python2.7/")
+    from catkin_pkg import packages
+    pkgs = packages.find_packages(stack_folder)
+    depends = []
+    for name, pkg in pkgs.iteritems():
+        for d in pkg.build_depends + pkg.test_depends:
+            if not d.name in depends:
+                depends.append(d.name)
+    return depends
+
+
 
 class BuildException(Exception):
     def __init__(self, msg):

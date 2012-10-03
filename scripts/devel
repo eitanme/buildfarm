@@ -8,107 +8,10 @@ import urllib
 import datetime
 import fnmatch
 from xml.etree.ElementTree import ElementTree
+from common import *
 
 
-def call(command, envir=None):
-    print "Executing command '%s'"%command
-    helper = subprocess.Popen(command.split(' '), 
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
-                              close_fds=True, env=envir)
-    res, err = helper.communicate()
-    print str(res)
-    print str(err)
-    if helper.returncode != 0:
-        msg = "Failed to execute command '%s'"%command
-        print "/!\  %s"%msg
-        raise BuildException(msg)
-    return res
 
-
-def get_dependencies(stack_folder):
-    # get the stack dependencies
-    print "Get the dependencies of stack in folder %s"%stack_folder
-    print sys.path
-    sys.path.append("/usr/lib/pymodules/python2.7/")
-    from catkin_pkg import packages
-    pkgs = packages.find_packages(stack_folder)
-    depends = []
-    for name, pkg in pkgs.iteritems():
-        for d in pkg.build_depends + pkg.test_depends:
-            if not d.name in depends:
-                depends.append(d.name)
-    return depends
-
-
-def get_ros_env(setup_file):
-    ros_env = os.environ
-    print "Retrieve the ROS build environment by sourcing %s"%setup_file
-    command = ['bash', '-c', 'source %s && env'%setup_file]
-    proc = subprocess.Popen(command, stdout = subprocess.PIPE)
-    for line in proc.stdout:
-        (key, _, value) = line.partition("=")
-        ros_env[key] = value.split('\n')[0]
-    proc.communicate()
-    if proc.returncode != 0:
-        msg = "Failed to source %s"%setup_file
-        print "/!\  %s"%msg
-        raise BuildException(msg)
-    print "ROS environment: %s"%str(ros_env)
-    return ros_env
-
-
-class RosDep:
-    def __init__(self, ros_distro):
-        self.r2a = {}
-        self.a2r = {}
-        self.env = os.environ
-        self.env['ROS_DISTRO'] = ros_distro
-
-        # Initialize rosdep database
-        print "Ininitalize rosdep database"
-        call("apt-get install --yes lsb-release python-rosdep")
-        call("rosdep init", self.env)
-        call("rosdep update", self.env)
-
-    def to_apt(self, r):
-        if r in self.r2a:
-            return self.r2a[r]
-        else:
-            a = call("rosdep resolve %s"%r, self.env).split('\n')[1]
-            print "Rosdep %s resolved into %s"%(r, a)
-            self.r2a[r] = a
-            self.a2r[a] = r
-            return a
-
-    def to_stack(self, a):
-        if not a in self.a2r:
-            print "%s not in apt-to-rosdep cache"%a
-        return self.a2r[a]
-
-
-def copy_test_results(workspace, buildspace):
-    print "Preparing xml test results"
-    try:
-        os.makedirs(os.path.join(workspace, 'test_results'))
-        print "Created test results directory"
-    except:
-        pass
-    os.chdir(os.path.join(workspace, 'test_results'))
-    print "Copy all test results"
-    count = 0
-    for root, dirnames, filenames in os.walk(os.path.join(buildspace, 'test_results')):
-        for filename in fnmatch.filter(filenames, '*.xml'):
-            call("cp %s %s/test_results/"%(os.path.join(root, filename), workspace))
-            count += 1
-    if count == 0:
-        print "No test results, so I'll create a dummy test result xml file"
-        call("cp %s %s"%(os.path.join(workspace, 'buildfarm/templates/junit_dummy_ouput_template.xml'),
-                         os.path.join(workspace, 'test_results/')))
-
-
-class BuildException(Exception):
-    def __init__(self, msg):
-        self.msg = msg
 
 def main():
 
