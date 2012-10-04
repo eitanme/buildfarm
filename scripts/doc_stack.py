@@ -42,12 +42,12 @@ import fnmatch
 from common import *
 from tags_db import *
 
-def get_stack_packages(stack_folder):
+def get_stack_package_paths(stack_folder):
     packages = []
 
     #Handle the case of a unary stack
     if os.path.isfile(os.path.join(stack_folder, 'manifest.xml')):
-        packages.append(os.path.basename(stack_folder))
+        packages.append(os.path.abspath(stack_folder))
         #At this point, we don't need to search through subdirectories
         return packages
 
@@ -56,7 +56,7 @@ def get_stack_packages(stack_folder):
     print "Getting the packages that are a part of a given stack %s..." % stack_folder
     for root, dirnames, filenames in os.walk(stack_folder):
         if fnmatch.filter(filenames, 'manifest.xml'):
-            packages.append(os.path.basename(root))
+            packages.append(os.path.abspath(root))
 
     return packages
 
@@ -124,7 +124,8 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
 
     stack_path = os.path.abspath("%s/%s" % (docspace, stack))
     print "Stack path %s" % stack_path
-    packages = get_stack_packages(stack_path)
+    package_paths = get_stack_package_paths(stack_path)
+    packages = [os.path.basename(p) for p in package_paths]
     print "Running documentation generation on packages %s" % packages
 
     #Check whether we're using a catkin stack or not
@@ -146,7 +147,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     tags_db = TagsDb(ros_distro, workspace)
 
     stack_tags = []
-    for package in packages:
+    for package, package_path in zip(packages, package_paths):
         #Build a tagfile list from dependencies for use by rosdoc
         build_tagfile(apt_deps, tags_db, 'rosdoc_tags.yaml', deb_name, package)
 
@@ -154,12 +155,12 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         #tags_path = os.path.abspath("%s/docs/tags/%s.tag" % (docspace, package))
         relative_tags_path = "%s/api/%s/tags/%s.tag" % (ros_distro, package, package)
         tags_path = os.path.abspath("%s/doc/%s" % (docspace, relative_tags_path))
-        print "Documenting %s..." % package
+        print "Documenting %s [%s]..." % (package, package_path)
         #Generate the command we'll use to document the stack
         command = ['bash', '-c', 'source /opt/ros/%s/setup.bash \
                    && export ROS_PACKAGE_PATH=%s:$ROS_PACKAGE_PATH \
                    && rosdoc_lite %s -o %s -g %s -t rosdoc_tags.yaml' \
-                   %(ros_distro, stack_path, package, html_path, tags_path) ]
+                   %(ros_distro, stack_path, package_path, html_path, tags_path) ]
         #proc = subprocess.Popen(command, stdout=subprocess.PIPE)
         proc = subprocess.Popen(command)
         proc.communicate()

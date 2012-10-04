@@ -17,6 +17,7 @@ def install_rosdoc_lite(workspace, ros_distro):
     call("git clone git://github.com/ros-infrastructure/rosdoc_lite.git %s" % checkout_path)
     old_dir = os.getcwd()
     os.chdir("rosdoc_lite")
+    call("git checkout %s-devel" % ros_distro)
     os.makedirs("build")
     os.chdir("build")
     ros_env = get_ros_env('/opt/ros/%s/setup.bash'%ros_distro)
@@ -24,6 +25,20 @@ def install_rosdoc_lite(workspace, ros_distro):
     call("make", ros_env)
     call("make install", ros_env)
     os.chdir(old_dir)
+
+def install_catkin_sphinx(workspace):
+    checkout_path = "%s/catkin_sphinx" % workspace
+    sphinx_path = os.path.abspath("%s/sphinx" % os.environ['HOME'])
+    if os.path.exists(checkout_path):
+        shutil.rmtree(checkout_path)
+
+    if not os.path.exists(sphinx_path):
+        os.makedirs(sphinx_path)
+
+    call("git clone git://github.com/ros/catkin-sphinx.git %s" % checkout_path)
+    print "Copying themes to %s" % sphinx_path
+    shutil.copytree(os.path.join(checkout_path, 'theme', 'ros-theme'), os.path.join(sphinx_path, 'ros-theme'))
+    call("pip install catkin-sphinx")
 
 def main():
     print
@@ -68,10 +83,18 @@ def main():
     #install ssh
     call("apt-get install openssh-client --yes")
 
+    print "Installing catkin-sphinx"
+    install_catkin_sphinx(workspace)
+    print "Done installing catkin-sphinx"
+
     #Install rosdoc lite
     print "Installing ros and rosdoc_lite..."
+    call("apt-get install python-catkin-pkg")
     call("apt-get install ros-%s-ros --yes" % ros_distro)
-    call("apt-get install ros-%s-rosdoc-lite --yes" % ros_distro)
+    call("apt-get install ros-%s-documentation --yes" % ros_distro)
+    #TODO: Put back in
+    #call("apt-get install ros-%s-rosdoc-lite --yes" % ros_distro)
+    install_rosdoc_lite(workspace, ros_distro)
     print "Done installing ros and rosdoc_lite"
 
     #Run documentation generation on the stack
