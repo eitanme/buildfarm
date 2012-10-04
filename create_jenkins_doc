@@ -6,9 +6,8 @@ import urllib
 import yaml
 import subprocess
 
-#ubuntu_distro = {'fuerte': ['precise'],
-#                 'groovy': ['precise']}
-ubuntu_distro = {'fuerte': ['precise']}
+ubuntu_distro = {'fuerte': ['precise'],
+                 'groovy': ['precise']}
 arch = ['amd64']
 
 def call(command, envir=None):

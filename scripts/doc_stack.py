@@ -126,7 +126,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     print "Stack path %s" % stack_path
     package_paths = get_stack_package_paths(stack_path)
     packages = [os.path.basename(p) for p in package_paths]
-    print "Running documentation generation on packages %s" % packages
+    print "Running documentation generation on\npackages: %s\npaths: %s" % (packages, package_paths)
 
     #Check whether we're using a catkin stack or not
     catkin_stack = is_catkin_stack(stack, ros_distro)

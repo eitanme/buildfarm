@@ -91,7 +91,8 @@ def main():
     print "Installing ros and rosdoc_lite..."
     call("apt-get install python-catkin-pkg")
     call("apt-get install ros-%s-ros --yes" % ros_distro)
-    call("apt-get install ros-%s-documentation --yes" % ros_distro)
+    #TODO: Replace wit commented line below
+    call("apt-get install python-sphinx python-yaml doxygen ros-%s-genmsg python-epydoc python-rospkg --yes" % ros_distro)
     #TODO: Put back in
     #call("apt-get install ros-%s-rosdoc-lite --yes" % ros_distro)
     install_rosdoc_lite(workspace, ros_distro)
