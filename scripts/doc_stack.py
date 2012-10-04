@@ -46,7 +46,7 @@ def get_stack_package_paths(stack_folder):
     packages = []
 
     #Handle the case of a unary stack
-    if os.path.isfile(os.path.join(stack_folder, 'manifest.xml')):
+    if os.path.isfile(os.path.join(stack_folder, 'manifest.xml')) or os.path.isfile(os.path.join(stack_folder, 'package.xml')):
         packages.append(os.path.abspath(stack_folder))
         #At this point, we don't need to search through subdirectories
         return packages
@@ -55,7 +55,7 @@ def get_stack_package_paths(stack_folder):
     #A folder is defined as a package if it contains a manifest.xml file
     print "Getting the packages that are a part of a given stack %s..." % stack_folder
     for root, dirnames, filenames in os.walk(stack_folder):
-        if fnmatch.filter(filenames, 'manifest.xml'):
+        if fnmatch.filter(filenames, 'manifest.xml') or fnmatch.filter(filenames, 'package.xml'):
             packages.append(os.path.abspath(root))
 
     return packages
