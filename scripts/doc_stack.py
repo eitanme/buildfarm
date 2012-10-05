@@ -42,23 +42,40 @@ import fnmatch
 from common import *
 from tags_db import *
 
+def write_distro_specific_manifest(manifest_file, vcs_type, vcs_url, api_homepage):
+    m_yaml = {}
+    if os.path.isfile(manifest_file):
+        with open(manifest_file, 'r') as f:
+            m_yaml = yaml.load(f)
+
+    m_yaml['api_documentation'] = api_homepage
+    #TODO fill this in properly
+    m_yaml['depends_on'] = []
+    m_yaml['vcs'] = vcs_type
+    m_yaml['vcs_url'] = vcs_url
+
+    with open(manifest_file, 'w+') as f:
+        yaml.safe_dump(m_yaml, f, default_flow_style=False)
+
 def get_stack_package_paths(stack_folder):
+    #TODO: This is a hack, in the chroot, the default python path does not
+    #include the directory to which catkin installs
+    sys.path.append("/usr/lib/pymodules/python2.7/")
+    from catkin_pkg import packages as catkin_packages
+    import rospkg
+
+    location_cache = {}
     packages = []
 
-    #Handle the case of a unary stack
-    if os.path.isfile(os.path.join(stack_folder, 'manifest.xml')) or os.path.isfile(os.path.join(stack_folder, 'package.xml')):
-        packages.append(os.path.abspath(stack_folder))
-        #At this point, we don't need to search through subdirectories
-        return packages
+    #find dry packages
+    packages.extend([os.path.abspath(location_cache[pkg]) \
+                     for pkg in rospkg.list_by_path(rospkg.MANIFEST_FILE, stack_folder, location_cache)])
+    #find wet packages
+    packages.extend([os.path.abspath(os.path.join(stack_folder, pkg_path)) \
+                     for pkg_path in catkin_packages.find_package_paths(stack_folder)])
 
-    #Get a list of all the directories in the stack folder
-    #A folder is defined as a package if it contains a manifest.xml file
-    print "Getting the packages that are a part of a given stack %s..." % stack_folder
-    for root, dirnames, filenames in os.walk(stack_folder):
-        if fnmatch.filter(filenames, 'manifest.xml') or fnmatch.filter(filenames, 'package.xml'):
-            packages.append(os.path.abspath(root))
-
-    return packages
+    #Remove any duplicates
+    return list(set(packages))
 
 def build_tagfile(apt_deps, tags_db, rosdoc_tagfile, current_deb, current_package):
     #Get the relevant tags from the database
@@ -132,8 +149,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     catkin_stack = is_catkin_stack(stack, ros_distro)
 
     #Get the apt name of the current stack
-    deb_name = get_stack_deb_name(stack, catkin_stack, ros_distro)
-
+    deb_name = get_stack_deb_name(stack, catkin_stack, ros_distro) 
     apt = AptDepends(platform, arch)
     apt_deps = apt.depends(deb_name)
     apt_deps.append(deb_name)
@@ -151,8 +167,8 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         #Build a tagfile list from dependencies for use by rosdoc
         build_tagfile(apt_deps, tags_db, 'rosdoc_tags.yaml', deb_name, package)
 
-        html_path = os.path.abspath("%s/doc/%s/api/%s/html" % (docspace, ros_distro, package))
-        #tags_path = os.path.abspath("%s/docs/tags/%s.tag" % (docspace, package))
+        relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, package)
+        pkg_doc_path = os.path.abspath(relative_doc_path)
         relative_tags_path = "%s/api/%s/tags/%s.tag" % (ros_distro, package, package)
         tags_path = os.path.abspath("%s/doc/%s" % (docspace, relative_tags_path))
         print "Documenting %s [%s]..." % (package, package_path)
@@ -160,17 +176,24 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         command = ['bash', '-c', 'source /opt/ros/%s/setup.bash \
                    && export ROS_PACKAGE_PATH=%s:$ROS_PACKAGE_PATH \
                    && rosdoc_lite %s -o %s -g %s -t rosdoc_tags.yaml' \
-                   %(ros_distro, stack_path, package_path, html_path, tags_path) ]
+                   %(ros_distro, stack_path, package_path, pkg_doc_path, tags_path) ]
         #proc = subprocess.Popen(command, stdout=subprocess.PIPE)
         proc = subprocess.Popen(command)
         proc.communicate()
 
         #Some doc runs won't generate tag files, so we need to check if they
         #exist before adding them to the list
+        homepage = 'http://ros.org/rosdoclite'
         if(os.path.exists(tags_path)):
-            stack_tags.append({'location':'http://ros.org/rosdoclite/%s'%relative_tags_path, 
+            stack_tags.append({'location':'%s/%s'%(homepage, relative_tags_path), 
                                    'docs_url':'../../../api/%s/html'%(package), 
                                    'package':'%s'%package})
+
+        #We also need to add information to each package manifest that we only
+        #have availalbe in this script like vcs location and type
+        write_distro_specific_manifest(os.path.join(pkg_doc_path, 'manifest.yaml'),
+                                       conf['type'], conf['url'], "%s/%s" %(homepage, relative_doc_path))
+
         print "Done"
 
     doc_path = os.path.abspath("%s/doc/%s" % (docspace, ros_distro))
@@ -196,7 +219,7 @@ def main():
     arguments = sys.argv[1:]
     ros_distro = arguments[0]
     stack = arguments[1]
-    workspace = '/home/eitan/hidof/willow'
+    workspace = 'workspace'
     docspace = 'docspace'
     document_stack(workspace, docspace, ros_distro, stack, 'precise', 'amd64')
 
