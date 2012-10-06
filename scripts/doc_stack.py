@@ -50,7 +50,7 @@ def write_stack_manifest(output_dir, manifest, vcs_type, vcs_url, api_homepage, 
     m_yaml = {}
     m_yaml['api_documentation'] = api_homepage
     m_yaml['vcs'] = vcs_type
-    m_yaml['vcs'] = vcs_url
+    m_yaml['vcs_url'] = vcs_url
 
     m_yaml['authors'] = manifest.author or ''
     m_yaml['brief'] = manifest.brief or ''
