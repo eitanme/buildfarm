@@ -66,7 +66,6 @@ class TagsDb(object):
         tags = {}
         with open(os.path.join(self.path, "%s.yaml" % self.distro_name), 'r') as f:
             tags = yaml.load(f)
-        return tags
 
     #Write new tag locations for a list of stacks
     def write_stack_tags(self, stack_name, tags):
@@ -84,12 +83,6 @@ class TagsDb(object):
         print "Commiting changes to tags list...."
         command = ['git', 'commit', '-a', '-m', 'Updating tags list for %s, stack %s' % (self.distro_name, stack_name)]
         proc = subprocess.Popen(command, stdout=subprocess.PIPE)
-        #command = ['bash', '-c', 'eval `ssh-agent` \
-        #           && ssh-add %s/buildfarm/scripts/ssh_keys/id_rsa \
-        #           && export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
-        #           && git pull origin master \
-        #           && git push origin master' \
-        #           %(self.workspace, self.workspace) ]
 
         command = ['bash', '-c', 'export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
                    && git pull origin master \
@@ -99,4 +92,35 @@ class TagsDb(object):
         proc = subprocess.Popen(command)
         proc.communicate()
         os.chdir(old_dir)
+
+    #Get all the tag locations for a list of packages
+    def get_reverse_deps(self):
+        with open(os.path.join(self.path, "%s-deps.yaml" % self.distro_name), 'r') as f:
+            deps = yaml.load(f)
+
+        if not deps:
+            deps = {}
+
+        return deps
+
+    #Write new reverse deps for a list of packages
+    def write_reverse_deps(self, deps):
+        with open(os.path.join(self.path, "%s-deps.yaml" % self.distro_name), 'w') as f:
+            yaml.dump(deps, f)
+
+        old_dir = os.getcwd()
+        os.chdir(self.path)
+        print "Commiting changes to deps list...."
+        command = ['git', 'commit', '-a', '-m', 'Updating deps list for %s' % (self.distro_name)]
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+
+        command = ['bash', '-c', 'export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
+                   && git pull origin master \
+                   && git push origin master' \
+                   %(self.workspace) ]
+
+        proc = subprocess.Popen(command)
+        proc.communicate()
+        os.chdir(old_dir)
+
 

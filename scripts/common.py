@@ -42,10 +42,42 @@ class AptDepends:
                 if not one:
                     self.depends_on(p, res, one)
         return res
+
+class RosDepResolver:
+    def __init__(self, ros_distro):
+        self.r2a = {}
+        self.a2r = {}
+        self.env = os.environ
+        self.env['ROS_DISTRO'] = ros_distro
+
+        print "Ininitalize rosdep database"
+        call("apt-get install --yes lsb-release python-rosdep")
+        call("rosdep init", self.env)
+        call("rosdep update", self.env)
+
+        print "Building dictionaries from a rosdep's db"
+        raw_db = call("rosdep db", self.env).split('\n')
+
+        for entry in raw_db:
+            split_entry = entry.split()
+            if len(split_entry) != 3 or split_entry[1] != '->':
+                continue
+            ros_entry, arrow, apt_entry = split_entry
+            self.r2a[ros_entry] = apt_entry
+            self.a2r[apt_entry] = ros_entry
+
+    def to_ros(self, apt_entry):
+        return self.a2r[apt_entry]
+
+    def to_apt(self, ros_entry):
+        return self.r2a[ros_entry]
+
+    def has_ros(self, ros_entry):
+        return ros_entry in self.r2a
+
+    def has_apt(self, apt_entry):
+        return apt_entry in self.a2r
         
-
-
-
 class RosDep:
     def __init__(self, ros_distro):
         self.r2a = {}
@@ -63,6 +95,9 @@ class RosDep:
         if r in self.r2a:
             return self.r2a[r]
         else:
+            res = call("rosdep resolve %s"%r, self.env).split('\n') 
+            if len(res) == 1:
+                raise Exception("Could not resolve rosdep")
             a = call("rosdep resolve %s"%r, self.env).split('\n')[1]
             print "Rosdep %s resolved into %s"%(r, a)
             self.r2a[r] = a
