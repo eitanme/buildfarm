@@ -188,7 +188,10 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         deps = get_dependencies(stack_path)
         for dep in deps:
             if dep not in packages:
-                apt_deps.append(ros_dep.to_apt(dep))
+                if ros_dep.has_ros(dep):
+                    apt_deps.append(ros_dep.to_apt(dep))
+                else:
+                    print "WARNING: The following dep cannot be resolved: %s... skipping." % dep
     else:
         import rospkg
         #Get the dependencies of a dry stack from the stack.xml
