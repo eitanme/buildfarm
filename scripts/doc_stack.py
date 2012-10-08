@@ -243,7 +243,9 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
             sources.append('source %s' % (os.path.join(workspace, 'buildspace/setup.bash')))
         else:
             print "Creating an export line that guesses the appropriate python paths for each package"
-            path_string = os.pathsep.join([os.path.join(p, 'src') if os.path.isdir(os.path.join(p, 'src')) for name, p in zip(packages.package_paths)])
+            path_string = os.pathsep.join([os.path.join(p, 'src') \
+                                           for name, p in zip(packages.package_paths) \
+                                           if os.path.isdir(os.path.join(p, 'src'))])
             sources.append("export PYTHONPATH=%s:$PYTHONPATH" % path_string)
 
     #Load information about existing tags
