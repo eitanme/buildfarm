@@ -231,6 +231,8 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     tags_db = TagsDb(ros_distro, workspace)
     reverse_deps = tags_db.get_reverse_deps()
 
+    current_tags = tags_db.get_stack_tags()
+
     stack_tags = []
     for package, package_path in zip(packages, package_paths):
         #Build a tagfile list from dependencies for use by rosdoc
@@ -260,7 +262,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
             #based on groovy catkin vs fuerte catkin
             if ros_distro != 'fuerte' and catkin_stack and ros_dep.has_ros(package):
                 pkg_deb_name = ros_dep.to_apt(package)
-                tags_db.write_stack_tags(pkg_deb_name, [package_tags])
+                current_tags[pkg_deb_name] = [package_tags]
             else:
                 stack_tags.append(package_tags)
 
@@ -279,7 +281,10 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
 
     #Write the new tags to the database if there are any to write
     if stack_tags:
-        tags_db.write_stack_tags(deb_name, stack_tags)
+        current_tags[deb_name] = stack_tags
+
+    #Make sure to write changes to tag files
+    tags_db.write_stack_tags(current_tags)
 
     #Write the reverse deps to the database
     tags_db.write_reverse_deps(reverse_deps)

@@ -67,14 +67,10 @@ class TagsDb(object):
         with open(os.path.join(self.path, "%s.yaml" % self.distro_name), 'r') as f:
             tags = yaml.load(f)
 
+        return tags or {}
+
     #Write new tag locations for a list of stacks
-    def write_stack_tags(self, stack_name, tags):
-        current_tags = self.get_stack_tags()
-        if not current_tags:
-            current_tags = {}
-
-        current_tags[stack_name] = tags
-
+    def write_stack_tags(self, current_tags):
         with open(os.path.join(self.path, "%s.yaml" % self.distro_name), 'w') as f:
             yaml.dump(current_tags, f)
 
@@ -98,10 +94,7 @@ class TagsDb(object):
         with open(os.path.join(self.path, "%s-deps.yaml" % self.distro_name), 'r') as f:
             deps = yaml.load(f)
 
-        if not deps:
-            deps = {}
-
-        return deps
+        return deps or {}
 
     #Write new reverse deps for a list of packages
     def write_reverse_deps(self, deps):
