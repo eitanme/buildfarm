@@ -274,8 +274,9 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     #Copy the files to the appropriate place
     call("rsync -qr %s rosbuild@wgs32:/var/www/www.ros.org/html/rosdoclite" % (doc_path))
 
-    #Write the new tags to the database
-    tags_db.write_stack_tags(deb_name, stack_tags)
+    #Write the new tags to the database if there are any to write
+    if stack_tags:
+        tags_db.write_stack_tags(deb_name, stack_tags)
 
     #Write the reverse deps to the database
     tags_db.write_reverse_deps(reverse_deps)
