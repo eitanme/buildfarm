@@ -77,7 +77,7 @@ class TagsDb(object):
         old_dir = os.getcwd()
         os.chdir(self.path)
         print "Commiting changes to tags list...."
-        command = ['git', 'commit', '-a', '-m', 'Updating tags list for %s, stack %s' % (self.distro_name, stack_name)]
+        command = ['git', 'commit', '-a', '-m', 'Updating tags list for %s' % (self.distro_name)]
         proc = subprocess.Popen(command, stdout=subprocess.PIPE)
 
         command = ['bash', '-c', 'export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
