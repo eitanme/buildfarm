@@ -233,8 +233,6 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
                     apt_dep = "ros-%s-%s" % (ros_distro, dep.replace('_', '-'))
                 apt_deps.append(apt_dep)
 
-    if write_stack_manifest:
-
 
     #Get the apt name of the current stack
     if ros_dep.has_ros(stack):
