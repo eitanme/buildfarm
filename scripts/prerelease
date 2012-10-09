@@ -42,7 +42,7 @@ def main():
 
     # Create rosdep object
     print "Create rosdep object"
-    rosdep = RosDep(ros_distro)
+    rosdep = RosDepResolver(ros_distro)
     stacks_apt = [rosdep.to_apt(s) for s in stacks]
 
     # parse the rosdistro file
