@@ -144,6 +144,13 @@ def get_stack_deb_name(stack_name, catkin_stack, ros_distro, ros_dep):
     else:
         return ros_dep.to_apt(stack_name)
 
+def generate_messages(env):
+    targets = call("make help", env).split('\n')
+    genpy_targets = [t.split()[1] for t in targets if t.endswith("genpy")]
+    print genpy_targets
+    for t in genpy_targets:
+        call("make %s" % t, env)
+
 def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     print "Working on distro %s and stack %s" % (ros_distro, stack)
     print "Parsing doc file for %s" % ros_distro
@@ -244,10 +251,13 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
             print "Calling cmake..."
             call("catkin_init_workspace %s"%docspace, ros_env)
             call("cmake ..", ros_env)
+            ros_env = get_ros_env(os.path.join(stackbuildspace, 'buildspace/setup.bash'))
+            generate_messages(ros_env)
             os.chdir(old_dir)
             sources.append('source %s' % (os.path.abspath(os.path.join(stackbuildspace, 'buildspace/setup.bash'))))
         else:
             print "Creating an export line that guesses the appropriate python paths for each package"
+            print "WARNING: This will not properly generate message files within this repo for python documentation."
             path_string = os.pathsep.join([os.path.join(p, 'src') \
                                            for name, p in zip(packages.package_paths) \
                                            if os.path.isdir(os.path.join(p, 'src'))])
