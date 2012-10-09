@@ -124,8 +124,8 @@ def build_tagfile(apt_deps, tags_db, rosdoc_tagfile, current_package):
                     if tag['package'] != current_package:
                         tags.append(tag)
 
-    tags_file = file(rosdoc_tagfile, 'w')
-    yaml.dump(tags, tags_file)
+    with open(rosdoc_tagfile, 'w+') as tags_file:
+        yaml.dump(tags, tags_file)
 
 #As far as I know, the best way to check whether a stack is catkinized or not is to 
 #download the current rosdistro for catkin and see if the name is in the rosdistro file
