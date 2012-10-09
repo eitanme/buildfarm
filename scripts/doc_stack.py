@@ -212,6 +212,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
 
         #For fuerte catkin, we still have stacks, so we still want to write a stack level manifest
         if ros_distro == 'fuerte':
+            import rospkg
             stack_manifest = rospkg.parse_manifest_file(stack_path, rospkg.STACK_FILE)
             write_stack_manifest(stack_doc_path, stack_manifest, conf['type'], conf['url'], "%s/%s" %(homepage, stack_relative_doc_path), packages)
     else:
