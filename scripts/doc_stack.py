@@ -214,6 +214,8 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         if ros_distro == 'fuerte':
             import rospkg
             stack_manifest = rospkg.parse_manifest_file(stack_path, rospkg.STACK_FILE)
+            stack_relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, stack)
+            stack_doc_path = os.path.abspath(stack_relative_doc_path)
             write_stack_manifest(stack_doc_path, stack_manifest, conf['type'], conf['url'], "%s/%s" %(homepage, stack_relative_doc_path), packages)
     else:
         import rospkg
@@ -230,6 +232,8 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
                 else:
                     apt_dep = "ros-%s-%s" % (ros_distro, dep.replace('_', '-'))
                 apt_deps.append(apt_dep)
+
+    if write_stack_manifest:
 
 
     #Get the apt name of the current stack
