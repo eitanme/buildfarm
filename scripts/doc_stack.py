@@ -144,12 +144,22 @@ def get_stack_deb_name(stack_name, catkin_stack, ros_distro, ros_dep):
     else:
         return ros_dep.to_apt(stack_name)
 
-def generate_messages(env):
+def generate_messages_catkin(env):
     targets = call("make help", env).split('\n')
     genpy_targets = [t.split()[1] for t in targets if t.endswith("genpy")]
     print genpy_targets
     for t in genpy_targets:
         call("make %s" % t, env)
+
+def generate_messages_dry(env, name):
+    targets = call("make help", env).split('\n')
+
+    if [t for t in targets if t.endswith("ROSBUILD_genaction_msgs")]:
+        call("make ROSBUILD_genaction_msgs", env)
+
+    if [t for t in targets if t.endswith("ROSBUILD_genmsg_py")]:
+        call("make ROSBUILD_genmsg_py", env)
+        print "Generated messages for %s" % name
 
 def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     print "Working on distro %s and stack %s" % (ros_distro, stack)
@@ -252,16 +262,28 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
             call("catkin_init_workspace %s"%docspace, ros_env)
             call("cmake ..", ros_env)
             ros_env = get_ros_env(os.path.join(stackbuildspace, 'buildspace/setup.bash'))
-            generate_messages(ros_env)
+            generate_messages_catkin(ros_env)
             os.chdir(old_dir)
             sources.append('source %s' % (os.path.abspath(os.path.join(stackbuildspace, 'buildspace/setup.bash'))))
         else:
             print "Creating an export line that guesses the appropriate python paths for each package"
             print "WARNING: This will not properly generate message files within this repo for python documentation."
             path_string = os.pathsep.join([os.path.join(p, 'src') \
-                                           for name, p in zip(packages.package_paths) \
+                                           for name, p in zip(packages, package_paths) \
                                            if os.path.isdir(os.path.join(p, 'src'))])
             sources.append("export PYTHONPATH=%s:$PYTHONPATH" % path_string)
+    else:
+        old_dir = os.getcwd()
+        for name, path in zip(packages, package_paths):
+            os.chdir(path)
+            os.makedirs('build')
+            os.chdir('build')
+            print "Calling cmake.."
+            ros_env = get_ros_env('/opt/ros/%s/setup.bash' %ros_distro)
+            ros_env['ROS_PACKAGE_PATH'] = '%s:%s' % (stack_path, ros_env['ROS_PACKAGE_PATH'])
+            call("cmake ..", ros_env)
+            generate_messages_dry(ros_env, name)
+        os.chdir(old_dir)
 
     #Load information about existing tags
     tags_db = TagsDb(ros_distro, workspace)
