@@ -239,6 +239,9 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         print "Getting dependencies for %s" % dep
         full_apt_deps.extend(apt.depends(dep))
 
+    #Make sure that we don't have any duplicates
+    full_apt_deps = list(set(full_apt_deps))
+
     print "Installing all dependencies for %s" % stack
     if apt_deps:
         call("apt-get install %s --yes" % (' '.join(apt_deps)))
