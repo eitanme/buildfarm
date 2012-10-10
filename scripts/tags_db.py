@@ -106,13 +106,13 @@ class TagsDb(object):
         command = ['git', 'commit', '-a', '-m', 'Updating deps list for %s' % (self.distro_name)]
         proc = subprocess.Popen(command, stdout=subprocess.PIPE)
 
-        command = ['bash', '-c', 'export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
-                   && git pull origin master \
-                   && git push origin master' \
-                   %(self.workspace) ]
+        env = os.environ
+        env['GIT_SSH'] = "%s/buildfarm/scripts/git_ssh" % self.workspace
 
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        proc.communicate()
+        call("git fetch origin", env)
+        call("git merge origin/master", env)
+        call("git push origin master", env)
+
         os.chdir(old_dir)
 
 
