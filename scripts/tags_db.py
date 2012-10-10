@@ -66,7 +66,7 @@ class TagsDb(object):
     def build_reverse_deps(self):
         #Build reverse dependencies
         self.reverse_deps = {}
-        for stack, deps in forward_deps.iteritems():
+        for stack, deps in self.forward_deps.iteritems():
             for dep in deps:
                 self.reverse_deps.set_default(dep, []).append(stack)
 
