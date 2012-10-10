@@ -45,11 +45,6 @@ class TagsDb(object):
         self.path  = os.path.abspath(os.path.join(self.workspace, 'rosdoc_tag_index'))
         if os.path.exists(self.path):
             shutil.rmtree(self.path)
-        #command = ['bash', '-c', 'eval `ssh-agent` \
-        #           && ssh-add %s/buildfarm/scripts/ssh_keys/id_rsa \
-        #           && export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
-        #           && git clone git@github.com:eitanme/rosdoc_tag_index.git %s' \
-        #           %(workspace, workspace, self.path) ]
 
         command = ['bash', '-c', 'export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
                    && git clone git@github.com:eitanme/rosdoc_tag_index.git %s' \
@@ -57,63 +52,61 @@ class TagsDb(object):
 
         proc = subprocess.Popen(command)
         proc.communicate()
-        #call("eval `ssh-agent`")
-        #call("ssh-add %s/buildfarm/scripts/ssh_keys/id_rsa" % workspace)
-        #call("git clone git@github.com:eitanme/rosdoc_tag_index.git %s" % self.path)
 
-    #Get all the tag locations for a list of stacks
-    def get_stack_tags(self):
-        tags = {}
         with open(os.path.join(self.path, "%s.yaml" % self.distro_name), 'r') as f:
-            tags = yaml.load(f)
+            self.tags = yaml.load(f)
+            self.tags = self.tags or {}
 
-        return tags or {}
+        with open(os.path.join(self.path, "%s-deps.yaml" % self.distro_name), 'r') as f:
+            self.forward_deps = yaml.load(f)
+            self.forward_deps = self.forward_deps or {}
+
+        self.build_reverse_deps()
+
+    def build_reverse_deps(self):
+        #Build reverse dependencies
+        self.reverse_deps = {}
+        for stack, deps in self.forward_deps.iteritems():
+            for dep in deps:
+                self.reverse_deps.setdefault(dep, []).append(stack)
+
+    def has_tags(self, key):
+        return key in self.tags
+
+    def get_tags(self, key):
+        return self.tags[key]
+
+    def set_tags(self, key, tags):
+        self.tags[key] = tags
+
+    def has_reverse_deps(self, key):
+        return key in self.reverse_deps
+
+    def get_reverse_deps(self, key):
+        return self.reverse_deps[key]
+
+    def add_forward_deps(self, key, deps):
+        self.forward_deps[key] = deps
+        self.build_reverse_deps()
 
     #Write new tag locations for a list of stacks
-    def write_stack_tags(self, current_tags):
+    def commit_db(self):
         with open(os.path.join(self.path, "%s.yaml" % self.distro_name), 'w') as f:
-            yaml.dump(current_tags, f)
+            yaml.dump(self.tags, f)
 
-        old_dir = os.getcwd()
-        os.chdir(self.path)
-        print "Commiting changes to tags list...."
-        command = ['git', 'commit', '-a', '-m', 'Updating tags list for %s' % (self.distro_name)]
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE)
-
-        command = ['bash', '-c', 'export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
-                   && git pull origin master \
-                   && git push origin master' \
-                   %(self.workspace) ]
-
-        proc = subprocess.Popen(command)
-        proc.communicate()
-        os.chdir(old_dir)
-
-    #Get all the tag locations for a list of packages
-    def get_reverse_deps(self):
-        with open(os.path.join(self.path, "%s-deps.yaml" % self.distro_name), 'r') as f:
-            deps = yaml.load(f)
-
-        return deps or {}
-
-    #Write new reverse deps for a list of packages
-    def write_reverse_deps(self, deps):
         with open(os.path.join(self.path, "%s-deps.yaml" % self.distro_name), 'w') as f:
-            yaml.dump(deps, f)
+            yaml.dump(self.forward_deps, f)
 
         old_dir = os.getcwd()
         os.chdir(self.path)
-        print "Commiting changes to deps list...."
-        command = ['git', 'commit', '-a', '-m', 'Updating deps list for %s' % (self.distro_name)]
+        print "Commiting changes to tags and deps lists...."
+        command = ['git', 'commit', '-a', '-m', 'Updating tags and deps lists for %s' % (self.distro_name)]
         proc = subprocess.Popen(command, stdout=subprocess.PIPE)
 
-        command = ['bash', '-c', 'export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
-                   && git pull origin master \
-                   && git push origin master' \
-                   %(self.workspace) ]
+        env = os.environ
+        env['GIT_SSH'] = "%s/buildfarm/scripts/git_ssh" % self.workspace
+        call("git fetch origin", env)
+        call("git merge origin/master", env)
+        call("git push origin master", env)
 
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        proc.communicate()
         os.chdir(old_dir)
-
-
