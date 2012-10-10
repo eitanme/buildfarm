@@ -37,6 +37,7 @@ import os
 import shutil
 from common import *
 import subprocess
+import time
 
 class TagsDb(object):
     def __init__(self, distro_name, workspace):
@@ -63,12 +64,27 @@ class TagsDb(object):
 
         self.build_reverse_deps()
 
+        with open(os.path.join(self.path, "%s-metapackages.yaml" % self.distro_name), 'r') as f:
+            self.metapackages = yaml.load(f)
+            self.metapackages = self.metapackages or {}
+
+        self.build_metapackage_index()
+
+
+    def build_metapackage_index(self):
+        #Build reverse dependencies
+        self.metapackage_index = {}
+        for package, deps in self.metapackages.iteritems():
+            for dep in deps:
+                self.metapackage_index.setdefault(dep, []).append(package)
+        print "BUILT METAPACKAGE INDEX:\n %s" % self.metapackage_index
+
     def build_reverse_deps(self):
         #Build reverse dependencies
         self.reverse_deps = {}
-        for stack, deps in self.forward_deps.iteritems():
+        for package, deps in self.forward_deps.iteritems():
             for dep in deps:
-                self.reverse_deps.setdefault(dep, []).append(stack)
+                self.reverse_deps.setdefault(dep, []).append(package)
 
     def has_tags(self, key):
         return key in self.tags
@@ -89,13 +105,26 @@ class TagsDb(object):
         self.forward_deps[key] = deps
         self.build_reverse_deps()
 
-    #Write new tag locations for a list of stacks
+    def has_metapackages(self, key):
+        return key in self.metapackage_index
+
+    def get_metapackages(self, key):
+        return self.metapackage_index[key]
+
+    def set_metapackage_deps(self, key, deps):
+        self.metapackages[key] = deps
+        self.build_metapackage_index()
+
+    #Write new tag locations for a list of packages
     def commit_db(self):
         with open(os.path.join(self.path, "%s.yaml" % self.distro_name), 'w') as f:
             yaml.dump(self.tags, f)
 
         with open(os.path.join(self.path, "%s-deps.yaml" % self.distro_name), 'w') as f:
             yaml.dump(self.forward_deps, f)
+
+        with open(os.path.join(self.path, "%s-metapackages.yaml" % self.distro_name), 'w') as f:
+            yaml.dump(self.metapackages, f)
 
         old_dir = os.getcwd()
         os.chdir(self.path)
@@ -105,8 +134,24 @@ class TagsDb(object):
 
         env = os.environ
         env['GIT_SSH'] = "%s/buildfarm/scripts/git_ssh" % self.workspace
-        call("git fetch origin", env)
-        call("git merge origin/master", env)
-        call("git push origin master", env)
+
+        #Have some tolerance for things commiting to the db at the same time
+        num_retries = 3
+        i = 0
+        while True:
+            try:
+                call("git fetch origin", env)
+                call("git merge origin/master", env)
+                call("git push origin master", env)
+            except BuildException as e:
+                print "Failed to fetch and merge..."
+                if i >= num_retries:
+                    raise e
+                time.sleep(2)
+                i += 1
+                print "Trying again attempt %d of %d..." % (i, num_retries)
+                continue
+
+            break
 
         os.chdir(old_dir)

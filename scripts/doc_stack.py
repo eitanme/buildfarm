@@ -43,7 +43,7 @@ import copy
 from common import *
 from tags_db import *
 
-def write_stack_manifest(output_dir, manifest, vcs_type, vcs_url, api_homepage, packages):
+def write_stack_manifest(output_dir, stack_name, manifest, vcs_type, vcs_url, api_homepage, packages, tags_db):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -61,6 +61,9 @@ def write_stack_manifest(output_dir, manifest, vcs_type, vcs_url, api_homepage, 
     m_yaml['srvs'] = []
     m_yaml['url'] = manifest.url or ''
     m_yaml['package_type'] = 'stack'
+
+    #Make sure to write stack dependencies to the tags db
+    tags_db.set_metapackage_deps(stack_name, packages)
 
     with open(os.path.join(output_dir, 'manifest.yaml'), 'w+') as f:
         yaml.safe_dump(m_yaml, f, default_flow_style=False)
@@ -88,6 +91,16 @@ def write_distro_specific_manifest(manifest_file, package, vcs_type, vcs_url, ap
     #Update our dependency list
     if 'depends' in m_yaml and type(m_yaml['depends']) == list:
         tags_db.add_forward_deps(package, m_yaml['depends'])
+
+    #We need to keep track of metapackages separately as they're special kinds
+    #of reverse deps
+    if 'package_type' in m_yaml and m_yaml['package_type'] == 'metapackage':
+        tags_db.set_metapackage_deps(package, m_yaml['depends'])
+
+    #Check to see if this package is part of any metapackages
+    if tags_db.has_metapackages(package):
+        m_yaml['metapackages'] = tags_db.get_metapackages(package)
+        
 
 def get_stack_package_paths(stack_folder):
     #TODO: This is a hack, in the chroot, the default python path does not
@@ -217,7 +230,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
             stack_manifest = rospkg.parse_manifest_file(stack_path, rospkg.STACK_FILE)
             stack_relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, stack)
             stack_doc_path = os.path.abspath(stack_relative_doc_path)
-            write_stack_manifest(stack_doc_path, stack_manifest, conf['type'], conf['url'], "%s/%s" %(homepage, stack_relative_doc_path), packages)
+            write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s" %(homepage, stack_relative_doc_path), packages, tags_db)
     else:
         import rospkg
         #Get the dependencies of a dry stack from the stack.xml
@@ -225,7 +238,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         deps = [d.name for d in stack_manifest.depends]
         stack_relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, stack)
         stack_doc_path = os.path.abspath(stack_relative_doc_path)
-        write_stack_manifest(stack_doc_path, stack_manifest, conf['type'], conf['url'], "%s/%s" %(homepage, stack_relative_doc_path), packages)
+        write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s" %(homepage, stack_relative_doc_path), packages)
         for dep in deps:
             if dep not in packages:
                 if ros_dep.has_ros(dep):
