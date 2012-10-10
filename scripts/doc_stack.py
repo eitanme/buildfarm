@@ -94,7 +94,7 @@ def write_distro_specific_manifest(manifest_file, package, vcs_type, vcs_url, ap
 
     #We need to keep track of metapackages separately as they're special kinds
     #of reverse deps
-    if 'package_type' in m_yaml and m['package_type'] == 'metapackage':
+    if 'package_type' in m_yaml and m_yaml['package_type'] == 'metapackage':
         tags_db.set_metapackage_deps(package, m_yaml['depends'])
 
     #Check to see if this package is part of any metapackages
