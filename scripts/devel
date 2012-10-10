@@ -38,7 +38,7 @@ def main():
 
     # install prerequisits
     print "Installing prerequisits"
-    call("apt-get install mercurial subversion python-catkin-pkg python-support --yes")
+    call("apt-get install mercurial subversion python-catkin-pkg python-support cmake --yes")
 
     # Create rosdep object
     print "Create rosdep object"
@@ -82,7 +82,7 @@ def main():
     else:
         print "Use the CMakeLists.txt file from the stack itself"
         ros_env = os.environ
-        call("cmake ../%s"%stack, ros_env)
+        call("cmake ../%s/"%stack, ros_env)
 
     # build stack
     print "Build stack %s"%stack

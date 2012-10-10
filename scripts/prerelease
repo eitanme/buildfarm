@@ -38,7 +38,7 @@ def main():
 
     # install vcs tools
     print "Installing vcs tools"
-    call("apt-get install mercurial subversion python-catkin-pkg python-support --yes")
+    call("apt-get install mercurial subversion python-catkin-pkg python-support cmake --yes")
 
     # Create rosdep object
     print "Create rosdep object"
