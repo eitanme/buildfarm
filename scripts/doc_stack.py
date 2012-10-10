@@ -65,7 +65,7 @@ def write_stack_manifest(output_dir, manifest, vcs_type, vcs_url, api_homepage, 
     with open(os.path.join(output_dir, 'manifest.yaml'), 'w+') as f:
         yaml.safe_dump(m_yaml, f, default_flow_style=False)
 
-def write_distro_specific_manifest(manifest_file, package, vcs_type, vcs_url, api_homepage, reverse_dep_list = {}):
+def write_distro_specific_manifest(manifest_file, package, vcs_type, vcs_url, api_homepage, tags_db):
     m_yaml = {}
     if os.path.isfile(manifest_file):
         with open(manifest_file, 'r') as f:
@@ -75,23 +75,19 @@ def write_distro_specific_manifest(manifest_file, package, vcs_type, vcs_url, ap
     m_yaml['vcs'] = vcs_type
     m_yaml['vcs_url'] = vcs_url
 
-    #Update our reverse dependency list
-    if 'depends' in m_yaml:
-        for d in m_yaml['depends']:
-            if not d in reverse_dep_list:
-                reverse_dep_list[d] = []
-            if not package in reverse_dep_list[d]:
-                reverse_dep_list[d].append(package)
-
     m_yaml['depends_on'] = []
-    if package in reverse_dep_list:
-        m_yaml['depends_on'] = reverse_dep_list[package]
+    if tags_db.has_reverse_deps(package):
+        m_yaml['depends_on'] = tags_db.get_reverse_deps(package)
 
     if not os.path.isdir(os.path.dirname(manifest_file)):
         os.makedirs(os.path.dirname(manifest_file))
 
     with open(manifest_file, 'w+') as f:
         yaml.safe_dump(m_yaml, f, default_flow_style=False)
+
+    #Update our dependency list
+    if 'depends' in m_yaml:
+        tags_db.add_forward_deps(m_yaml['depends'])
 
 def get_stack_package_paths(stack_folder):
     #TODO: This is a hack, in the chroot, the default python path does not
@@ -115,17 +111,15 @@ def get_stack_package_paths(stack_folder):
 
 def build_tagfile(apt_deps, tags_db, rosdoc_tagfile, current_package):
     #Get the relevant tags from the database
-    apt_tags = tags_db.get_stack_tags()
     tags = []
 
-    if apt_tags:
-        for dep in apt_deps:
-            if dep in apt_tags:
-                #Make sure that we don't pass our own tagfile to ourself
-                #bad things happen when we do this
-                for tag in apt_tags[dep]:
-                    if tag['package'] != current_package:
-                        tags.append(tag)
+    for dep in apt_deps:
+        if tags_db.has_tags(dep):
+            #Make sure that we don't pass our own tagfile to ourself
+            #bad things happen when we do this
+            for tag in tags_db.get_tags(dep):
+                if tag['package'] != current_package:
+                    tags.append(tag)
 
     with open(rosdoc_tagfile, 'w+') as tags_file:
         yaml.dump(tags, tags_file)
@@ -308,9 +302,6 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
 
     #Load information about existing tags
     tags_db = TagsDb(ros_distro, workspace)
-    reverse_deps = tags_db.get_reverse_deps()
-
-    current_tags = tags_db.get_stack_tags()
 
     stack_tags = []
     for package, package_path in zip(packages, package_paths):
@@ -341,7 +332,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
             #based on groovy catkin vs fuerte catkin
             if ros_distro != 'fuerte' and catkin_stack and ros_dep.has_ros(package):
                 pkg_deb_name = ros_dep.to_apt(package)
-                current_tags[pkg_deb_name] = [package_tags]
+                tags_db.set_tags(pkg_deb_name, [package_tags])
             else:
                 stack_tags.append(package_tags)
 
@@ -349,7 +340,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         #have availalbe in this script like vcs location and type
         write_distro_specific_manifest(os.path.join(pkg_doc_path, 'manifest.yaml'),
                                        package, conf['type'], conf['url'], "%s/%s" %(homepage, relative_doc_path),
-                                       reverse_deps)
+                                       tags_db)
 
         print "Done"
 
@@ -360,13 +351,10 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
 
     #Write the new tags to the database if there are any to write
     if stack_tags:
-        current_tags[deb_name] = stack_tags
+        tags_db.set_tags(deb_name, stack_tags)
 
-    #Make sure to write changes to tag files
-    tags_db.write_stack_tags(current_tags)
-
-    #Write the reverse deps to the database
-    tags_db.write_reverse_deps(reverse_deps)
+    #Make sure to write changes to tag files and deps
+    tags_db.commit_db()
 
     #Tell jenkins that we've succeeded
     print "Preparing xml test results"
@@ -386,7 +374,6 @@ def main():
     workspace = 'workspace'
     docspace = 'docspace'
     document_stack(workspace, docspace, ros_distro, stack, 'precise', 'amd64')
-
 
 if __name__ == '__main__':
     main()
