@@ -3,7 +3,43 @@ import os
 import subprocess
 import sys
 import fnmatch
+import yaml
 from xml.etree.ElementTree import ElementTree
+
+class RosDistro:
+    def __init__(self, name):
+        url = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s.yaml'%name)
+        distro = yaml.load(url.read())
+        self.repositories = {}
+        self.packages = []
+        for name, data in distro['repositories'].iteritems():
+            repo = RosDistroRepo(data)
+            self.repositories[name] = repo
+            for p in repo.packages:
+                self.packages.append(p)
+
+
+class RosDistroRepo:
+    def __init__(self, data):
+        self.url = data['url']
+        self.version = data['version']
+        self.packages = []
+        if 'packages' in data.keys():
+            self.packages = data['packages'].keys()
+            
+    def get_rosinstall_release(self):
+        rosinstall = ""
+        for p in self.packages:
+            rosinstall += yaml.dump([{'git': {'local-name': p, 'uri': self.url, 'version': '/'.join(['release', p, self.version])}}], default_style=False)
+        return rosinstall
+
+    def get_rosinstall_latest(self):
+        rosinstall = ""
+        for p in self.packages:
+            rosinstall += yaml.dump([{'git': {'local-name': p, 'uri': self.url, 'version': '/'.join(['release', p])}}], default_style=False)
+        return rosinstall
+
+
 
 class AptDepends:
     def __init__(self, ubuntudistro, arch):
@@ -161,22 +197,22 @@ def call(command, envir=None):
         raise BuildException(msg)
     return res
 
-def get_dependencies(stack_folder):
-    # get the stack dependencies
-    print "Get the dependencies of stack in folder %s"%stack_folder
-    print sys.path
+def get_dependencies(source_folder):
+    # get the dependencies
+    print "Get the dependencies of source folder %s"%source_folder
     sys.path.append("/usr/lib/pymodules/python2.7/")
     from catkin_pkg import packages
-    pkgs = packages.find_packages(stack_folder)
+    pkgs = packages.find_packages(source_folder)
+    local_packages = pkgs.keys()
     if len(pkgs) > 0:
-        print "In folder %s, found packages %s"%(stack_folder, ', '.join(pkgs.keys()))
+        print "In folder %s, found packages %s"%(source_folder, ', '.join(local_packages))
     else:
-        print "In folder %s, found no packages"%stack_folder
+        print "In folder %s, found no packages"%source_folder
 
     depends = []
     for name, pkg in pkgs.iteritems():
         for d in pkg.build_depends + pkg.test_depends:
-            if not d.name in depends:
+            if not d.name in depends and not d.name in local_packages:
                 depends.append(d.name)
     return depends
 
