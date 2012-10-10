@@ -8,6 +8,7 @@ import urllib
 import string
 import datetime
 import fnmatch
+import shutil
 from xml.etree.ElementTree import ElementTree
 from common import *
 
@@ -23,9 +24,12 @@ def main():
         print "Working on distro %s and stacks %s"%(ros_distro, ', '.join(stacks))
 
     workspace = os.environ['WORKSPACE']
-    sourcespace = os.path.join('%s/tmp'%workspace, str(datetime.datetime.now()).replace(' ','_').replace(':','.'))
+    tmpdir = os.path.join(workspace, 'tmp', 'prerelease_builds')
+    sourcespace = os.path.join(tmpdir, str(datetime.datetime.now()).replace(' ','_').replace(':','.'))
     stackbuildspace = os.path.join(sourcespace, 'build_stack')
     dependbuildspace = os.path.join(sourcespace, 'build_depend_on')
+    if os.path.isdir(tmpdir):
+        shutil.rmtree(tmpdir)  # cleanup of old stuff
     os.makedirs(sourcespace)
 
     # Add ros to apt
