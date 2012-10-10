@@ -168,6 +168,11 @@ def get_dependencies(stack_folder):
     sys.path.append("/usr/lib/pymodules/python2.7/")
     from catkin_pkg import packages
     pkgs = packages.find_packages(stack_folder)
+    if len(pkgs) > 0:
+        print "In folder %s, found packages %s"%(stack_folder, ', '.join(pkgs.keys()))
+    else:
+        print "In folder %s, found no packages"%stack_folder
+
     depends = []
     for name, pkg in pkgs.iteritems():
         for d in pkg.build_depends + pkg.test_depends:

@@ -52,10 +52,6 @@ def main():
     # parse the rosdistro file
     print "Parsing rosdistro file for %s"%ros_distro
     distro = rosdistro.Rosdistro(ros_distro)
-    print "Resolve all entries in the rosdistro file to ros packages"
-    distro_apt = []
-    for d in distro._repoinfo.keys():
-        distro_apt.append(rosdep.to_apt(d))
 
     # download the stacks from source
     print "Downloading all stacks"
@@ -78,6 +74,10 @@ def main():
     dependencies = []
     for stack in stacks:
         dep = get_dependencies(os.path.join(sourcespace, stack))
+        if len(dep) > 0:
+            print "Dependencies of stack %s are %s"%(stack, ', '.join(dep))
+        else:
+            print "Stack %s does not have any dependencies"%stack
         if not 'catkin' in dep:
             catkin = False
         for d in dep:
@@ -121,13 +121,13 @@ def main():
         return
 
     # get stack depends-on list
-    print "Get list of stacks that depend on %s"%stack
+    print "Get list of wet stacks that depend on %s"%stack
     apt = AptDepends(os.environ['OS_PLATFORM'], os.environ['ARCH'])
     depends_on_apt = []
     depends_on = []
     for stack_apt in stacks_apt:
         for d in apt.depends_on(stack_apt):
-            if not d in depends_on_apt and not d in stacks_apt and d in distro_apt:
+            if not d in depends_on_apt and not d in stacks_apt and rosdep.has_apt(d):
                 depends_on_apt.append(d)
                 depends_on.append(rosdep.to_stack(d))
     print "Depends_on list for stacks: %s"%(', '.join(depends_on))
