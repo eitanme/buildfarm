@@ -68,7 +68,7 @@ class TagsDb(object):
         self.reverse_deps = {}
         for stack, deps in self.forward_deps.iteritems():
             for dep in deps:
-                self.reverse_deps.set_default(dep, []).append(stack)
+                self.reverse_deps.setdefault(dep, []).append(stack)
 
     def has_tags(self, key):
         return key in self.tags
