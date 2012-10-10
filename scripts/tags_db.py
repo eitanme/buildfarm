@@ -37,6 +37,7 @@ import os
 import shutil
 from common import *
 import subprocess
+import time
 
 class TagsDb(object):
     def __init__(self, distro_name, workspace):
@@ -132,8 +133,24 @@ class TagsDb(object):
 
         env = os.environ
         env['GIT_SSH'] = "%s/buildfarm/scripts/git_ssh" % self.workspace
-        call("git fetch origin", env)
-        call("git merge origin/master", env)
-        call("git push origin master", env)
+
+        #Have some tolerance for things commiting to the db at the same time
+        num_retries = 3
+        i = 0
+        while True:
+            try:
+                call("git fetch origin", env)
+                call("git merge origin/master", env)
+                call("git push origin master", env)
+            except BuildException as e:
+                print "Failed to fetch and merge..."
+                if i >= num_retries:
+                    raise e
+                time.sleep(2)
+                i += 1
+                print "Trying again attempt %d of %d..." % (i, num_retries)
+                continue
+
+            break
 
         os.chdir(old_dir)
