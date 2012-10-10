@@ -5,6 +5,8 @@ import jenkins
 import urllib
 import yaml
 import subprocess
+from rospkg import environment
+from run_jenkins_vcs import *
 
 ubuntu_distro = {'fuerte': ['precise'],
                  'groovy': ['precise']}
@@ -28,22 +30,40 @@ def main():
         sys.exit(0)
     ros_distro = sys.argv[1]
     
+    # create jenkins instance 
+    with open(os.path.join(environment.get_ros_home(), 'catkin-debs', 'server.yaml')) as f:
+        info = yaml.load(f)
+    jenkins_instance = jenkins.Jenkins('http://jenkins.willowgarage.com:8080/', info['username'], info['password'])
+
     # parse the devel distro file
     print "Parsing devel yaml file for %s"%ros_distro
     f = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s-devel.yaml'%ros_distro)
     devel = yaml.load(f.read())['repositories']
 
     # create all jobs
+    devel_jobs = []
     for s, conf in devel.iteritems():
         for u in ubuntu_distro[ros_distro]:
             for a in arch:
                 if conf['type'] == 'svn':
                     conf['version'] = 'dummy'
-                call("./run_jenkins_vcs %s %s %s wim@hidof.com %s %s %s devel %s %s"%(u, a, ros_distro+'-'+s, conf['type'], conf['url'], conf['version'], ros_distro, s))
+                print "----"
+                job_name = run_jenkins_vcs(jenkins_instance, u, a, ros_distro+'-'+s, 'wim@hidof.com', 
+                                           conf['type'], conf['url'], conf['version'],
+                                           'devel', [ros_distro, s], info['username'])
+                devel_jobs.append(job_name)
 
 
+    # delete old jobs
+    remove = []
+    current_jobs = [j['name'] for j in jenkins_instance.get_jobs()]
+    for c in current_jobs:
+        if 'devel-%s'%ros_distro in c and not c in devel_jobs:
+            remove.append(c)
 
-
+    for r in remove:
+        jenkins_instance.delete_job(r)
+        print "Deleted old job %s"%r
 
 
 if __name__ == "__main__":
