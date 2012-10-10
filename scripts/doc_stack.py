@@ -87,7 +87,7 @@ def write_distro_specific_manifest(manifest_file, package, vcs_type, vcs_url, ap
 
     #Update our dependency list
     if 'depends' in m_yaml:
-        tags_db.add_forward_deps(m_yaml['depends'])
+        tags_db.add_forward_deps(package, m_yaml['depends'])
 
 def get_stack_package_paths(stack_folder):
     #TODO: This is a hack, in the chroot, the default python path does not
