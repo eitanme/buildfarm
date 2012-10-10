@@ -87,6 +87,9 @@ def write_distro_specific_manifest(manifest_file, package, vcs_type, vcs_url, ap
     if package in reverse_dep_list:
         m_yaml['depends_on'] = reverse_dep_list[package]
 
+    if not os.path.isdir(os.path.dirname(manifest_file)):
+        os.makedirs(os.path.dirname(manifest_file))
+
     with open(manifest_file, 'w+') as f:
         yaml.safe_dump(m_yaml, f, default_flow_style=False)
 

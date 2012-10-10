@@ -112,7 +112,7 @@ class TagsDb(object):
                    && git push origin master' \
                    %(self.workspace) ]
 
-        proc = subprocess.Popen(command)
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         proc.communicate()
         os.chdir(old_dir)
 
