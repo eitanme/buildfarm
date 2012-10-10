@@ -86,7 +86,7 @@ def write_distro_specific_manifest(manifest_file, package, vcs_type, vcs_url, ap
         yaml.safe_dump(m_yaml, f, default_flow_style=False)
 
     #Update our dependency list
-    if 'depends' in m_yaml:
+    if 'depends' in m_yaml and type(m_yaml['depends']) == list:
         tags_db.add_forward_deps(package, m_yaml['depends'])
 
 def get_stack_package_paths(stack_folder):
