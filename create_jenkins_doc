@@ -23,14 +23,16 @@ def call(command, envir=None):
 
 # Schedule all doc jobs on Jenkins
 def main():
-    if len(sys.argv) != 2:
-        print "Usage: %s ros_distro"%(sys.argv[0])
+    if len(sys.argv) != 3:
+        print "Usage: %s ros_distro file"%(sys.argv[0])
+        print "Ex: %s fuerte dry-doc"%(sys.argv[0])
         sys.exit(0)
     ros_distro = sys.argv[1]
+    file_ext = sys.argv[2]
     
     # parse the devel distro file
     print "Parsing doc yaml file for %s"%ros_distro
-    f = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s-doc.yaml'%ros_distro)
+    f = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s-%s.yaml'%(ros_distro, file_ext))
     devel = yaml.load(f.read())['repositories']
 
     # create all jobs
