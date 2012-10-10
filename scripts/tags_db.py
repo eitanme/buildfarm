@@ -79,14 +79,13 @@ class TagsDb(object):
         print "Commiting changes to tags list...."
         command = ['git', 'commit', '-a', '-m', 'Updating tags list for %s' % (self.distro_name)]
         proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+        env = os.environ
+        env['GIT_SSH'] = "%s/buildfarm/scripts/git_ssh" % self.workspace
 
-        command = ['bash', '-c', 'export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
-                   && git pull origin master \
-                   && git push origin master' \
-                   %(self.workspace) ]
+        call("git fetch origin", env)
+        call("git merge origin/master", env)
+        call("git push origin master", env)
 
-        proc = subprocess.Popen(command)
-        proc.communicate()
         os.chdir(old_dir)
 
     #Get all the tag locations for a list of packages
