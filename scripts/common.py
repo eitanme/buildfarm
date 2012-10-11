@@ -207,7 +207,7 @@ def get_dependencies(source_folder):
     if len(pkgs) > 0:
         print "In folder %s, found packages %s"%(source_folder, ', '.join(local_packages))
     else:
-        print "In folder %s, found no packages"%source_folder
+        raise BuildException("In folder %s, found no packages"%source_folder)
 
     depends = []
     for name, pkg in pkgs.iteritems():
