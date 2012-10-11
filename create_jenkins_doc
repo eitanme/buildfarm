@@ -33,14 +33,12 @@ def main():
     # parse the devel distro file
     print "Parsing doc yaml file for %s"%ros_distro
     f = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s-%s.yaml'%(ros_distro, file_ext))
-    devel = yaml.load(f.read())['repositories']
+    devel = yaml.load(f.read())
 
     # create all jobs
     for s, conf in devel.iteritems():
         for u in ubuntu_distro[ros_distro]:
             for a in arch:
-                if conf['type'] == 'svn':
-                    conf['version'] = 'dummy'
                 #call("./run_jenkins_vcs %s %s %s eitan@hidof.com %s %s %s doc %s %s"%(u, a, 'doc-'+ros_distro+'-'+s, conf['type'], conf['url'], conf['version'], ros_distro, s))
                 call("./run_jenkins_now.py %s %s %s eitan@hidof.com doc %s %s"%(u, a, ros_distro+'-'+s, ros_distro, s))
 

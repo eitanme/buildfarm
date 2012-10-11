@@ -186,13 +186,14 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     print "Working on distro %s and stack %s" % (ros_distro, stack)
     print "Parsing doc file for %s" % ros_distro
     f = urllib.urlopen('https://raw.github.com/eitanme/rosdistro/master/releases/%s-doc.yaml'%ros_distro)
-    repos = yaml.load(f.read())['repositories']
+    repos = yaml.load(f.read())
 
     print "Finding information for stack %s" % stack
+
     if not stack in repos.keys():
         #Try to load from the dry yaml file
         f = urllib.urlopen('https://raw.github.com/eitanme/rosdistro/master/releases/%s-dry-doc.yaml'%ros_distro)
-        repos = yaml.load(f.read())['repositories']
+        repos = yaml.load(f.read())
         if not stack in repos.keys():
             raise Exception("Stack %s does not exist in %s rosdistro file" % (stack, ros_distro))
 
@@ -201,11 +202,8 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     #TODO: Change this or parameterize or whatever
     homepage = 'http://ros.org/rosdoclite'
 
-    #svn encodes the version in the url
-    if not 'version' in conf:
-        rosinstall = yaml.dump([{conf['type']: {'local-name': stack, 'uri': conf['url']}}], default_style=False)
-    else:
-        rosinstall = yaml.dump([{conf['type']: {'local-name': stack, 'uri': conf['url'], 'version': conf['version']}}], default_style=False)
+    #Select the appropriate rosinstall file
+    rosinstall = yaml.dump(conf['rosinstall'], default_style=False)
 
     print "Rosinstall for stack %s:\n%s"%(stack, rosinstall)
     with open(workspace+"/stack.rosinstall", 'w') as f:
@@ -229,7 +227,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     #Load information about existing tags
     tags_db = TagsDb(ros_distro, workspace)
 
-    if catkin_stack:
+    if catkin_stack and ros_distro == 'groovy':
         #Get the dependencies of any catkin packages in the repo
         deps = get_dependencies(stack_path)
         for dep in deps:
@@ -238,14 +236,6 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
                     apt_deps.append(ros_dep.to_apt(dep))
                 else:
                     print "WARNING: The following dep cannot be resolved: %s... skipping." % dep
-
-        #For fuerte catkin, we still have stacks, so we still want to write a stack level manifest
-        if ros_distro == 'fuerte':
-            import rospkg
-            stack_manifest = rospkg.parse_manifest_file(stack_path, rospkg.STACK_FILE)
-            stack_relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, stack)
-            stack_doc_path = os.path.abspath(stack_relative_doc_path)
-            write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s/api/%s/html" %(homepage, ros_distro, stack), packages, tags_db)
     else:
         import rospkg
         #Get the dependencies of a dry stack from the stack.xml
@@ -253,7 +243,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         deps = [d.name for d in stack_manifest.depends]
         stack_relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, stack)
         stack_doc_path = os.path.abspath(stack_relative_doc_path)
-        write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s/api/%s/html" %(homepage, ros_distro, stack), packages, tags_db)
+        write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['vcs_type'], conf['vcs_url'], "%s/%s/api/%s/html" %(homepage, ros_distro, stack), packages, tags_db)
         for dep in deps:
             if dep not in packages:
                 if ros_dep.has_ros(dep):
@@ -367,7 +357,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         #We also need to add information to each package manifest that we only
         #have availalbe in this script like vcs location and type
         write_distro_specific_manifest(os.path.join(pkg_doc_path, 'manifest.yaml'),
-                                       package, conf['type'], conf['url'], "%s/%s/api/%s/html" %(homepage, ros_distro, package),
+                                       package, conf['vcs_type'], conf['vcs_url'], "%s/%s/api/%s/html" %(homepage, ros_distro, package),
                                        tags_db)
 
         print "Done"
