@@ -54,13 +54,22 @@ def write_stack_manifest(output_dir, stack_name, manifest, vcs_type, vcs_url, ap
 
     m_yaml['authors'] = manifest.author or ''
     m_yaml['brief'] = manifest.brief or ''
-    m_yaml['depends'] = packages or ''
+    m_yaml['depends'] = [dep.name for dep in manifest.depends] or ''
+    m_yaml['packages'] = packages or ''
     m_yaml['description'] = manifest.description or ''
     m_yaml['license'] = manifest.license or ''
     m_yaml['msgs'] = []
     m_yaml['srvs'] = []
     m_yaml['url'] = manifest.url or ''
     m_yaml['package_type'] = 'stack'
+
+    m_yaml['depends_on'] = []
+    if tags_db.has_reverse_deps(stack_name):
+        m_yaml['depends_on'] = tags_db.get_reverse_deps(stack_name)
+
+    #Update our dependency list
+    if 'depends' in m_yaml and type(m_yaml['depends']) == list:
+        tags_db.add_forward_deps(stack_name, m_yaml['depends'])
 
     #Make sure to write stack dependencies to the tags db
     tags_db.set_metapackage_deps(stack_name, packages)
@@ -92,6 +101,7 @@ def write_distro_specific_manifest(manifest_file, package, vcs_type, vcs_url, ap
     #We need to keep track of metapackages separately as they're special kinds
     #of reverse deps
     if 'package_type' in m_yaml and m_yaml['package_type'] == 'metapackage':
+        m_yaml['packages'] = m_yaml['depends']
         tags_db.set_metapackage_deps(package, m_yaml['depends'])
 
     #Check to see if this package is part of any metapackages
@@ -235,7 +245,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
             stack_manifest = rospkg.parse_manifest_file(stack_path, rospkg.STACK_FILE)
             stack_relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, stack)
             stack_doc_path = os.path.abspath(stack_relative_doc_path)
-            write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s" %(homepage, stack_relative_doc_path), packages, tags_db)
+            write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s/api/%s/html" %(homepage, ros_distro, stack), packages, tags_db)
     else:
         import rospkg
         #Get the dependencies of a dry stack from the stack.xml
@@ -243,7 +253,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         deps = [d.name for d in stack_manifest.depends]
         stack_relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, stack)
         stack_doc_path = os.path.abspath(stack_relative_doc_path)
-        write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s" %(homepage, stack_relative_doc_path), packages)
+        write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s/api/%s/html" %(homepage, ros_distro, stack), packages, tags_db)
         for dep in deps:
             if dep not in packages:
                 if ros_dep.has_ros(dep):
@@ -308,14 +318,17 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     else:
         old_dir = os.getcwd()
         for name, path in zip(packages, package_paths):
-            os.chdir(path)
-            os.makedirs('build')
-            os.chdir('build')
-            print "Calling cmake.."
-            ros_env = get_ros_env('/opt/ros/%s/setup.bash' %ros_distro)
-            ros_env['ROS_PACKAGE_PATH'] = '%s:%s' % (stack_path, ros_env['ROS_PACKAGE_PATH'])
-            call("cmake ..", ros_env)
-            generate_messages_dry(ros_env, name)
+            #Make sure to check that a CMake file exists before attempting to
+            #do message generation
+            if os.path.isfile(os.path.join(path, 'CMakeLists.txt')):
+                os.chdir(path)
+                os.makedirs('build')
+                os.chdir('build')
+                print "Calling cmake.."
+                ros_env = get_ros_env('/opt/ros/%s/setup.bash' %ros_distro)
+                ros_env['ROS_PACKAGE_PATH'] = '%s:%s' % (stack_path, ros_env['ROS_PACKAGE_PATH'])
+                call("cmake ..", ros_env)
+                generate_messages_dry(ros_env, name)
         os.chdir(old_dir)
 
     stack_tags = []
@@ -354,7 +367,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         #We also need to add information to each package manifest that we only
         #have availalbe in this script like vcs location and type
         write_distro_specific_manifest(os.path.join(pkg_doc_path, 'manifest.yaml'),
-                                       package, conf['type'], conf['url'], "%s/%s" %(homepage, relative_doc_path),
+                                       package, conf['type'], conf['url'], "%s/%s/api/%s/html" %(homepage, ros_distro, package),
                                        tags_db)
 
         print "Done"
