@@ -318,14 +318,17 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     else:
         old_dir = os.getcwd()
         for name, path in zip(packages, package_paths):
-            os.chdir(path)
-            os.makedirs('build')
-            os.chdir('build')
-            print "Calling cmake.."
-            ros_env = get_ros_env('/opt/ros/%s/setup.bash' %ros_distro)
-            ros_env['ROS_PACKAGE_PATH'] = '%s:%s' % (stack_path, ros_env['ROS_PACKAGE_PATH'])
-            call("cmake ..", ros_env)
-            generate_messages_dry(ros_env, name)
+            #Make sure to check that a CMake file exists before attempting to
+            #do message generation
+            if os.path.isfile(os.join(path, 'CMakeLists.txt')):
+                os.chdir(path)
+                os.makedirs('build')
+                os.chdir('build')
+                print "Calling cmake.."
+                ros_env = get_ros_env('/opt/ros/%s/setup.bash' %ros_distro)
+                ros_env['ROS_PACKAGE_PATH'] = '%s:%s' % (stack_path, ros_env['ROS_PACKAGE_PATH'])
+                call("cmake ..", ros_env)
+                generate_messages_dry(ros_env, name)
         os.chdir(old_dir)
 
     stack_tags = []
