@@ -245,7 +245,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
             stack_manifest = rospkg.parse_manifest_file(stack_path, rospkg.STACK_FILE)
             stack_relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, stack)
             stack_doc_path = os.path.abspath(stack_relative_doc_path)
-            write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s" %(homepage, stack_relative_doc_path), packages, tags_db)
+            write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s/api/%s/html" %(homepage, ros_distro, stack), packages, tags_db)
     else:
         import rospkg
         #Get the dependencies of a dry stack from the stack.xml
@@ -253,7 +253,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         deps = [d.name for d in stack_manifest.depends]
         stack_relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, stack)
         stack_doc_path = os.path.abspath(stack_relative_doc_path)
-        write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s" %(homepage, stack_relative_doc_path), packages, tags_db)
+        write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s/api/%s/html" %(homepage, ros_distro, stack), packages, tags_db)
         for dep in deps:
             if dep not in packages:
                 if ros_dep.has_ros(dep):
@@ -364,7 +364,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         #We also need to add information to each package manifest that we only
         #have availalbe in this script like vcs location and type
         write_distro_specific_manifest(os.path.join(pkg_doc_path, 'manifest.yaml'),
-                                       package, conf['type'], conf['url'], "%s/%s" %(homepage, relative_doc_path),
+                                       package, conf['type'], conf['url'], "%s/%s/api/%s/html" %(homepage, ros_distro, package),
                                        tags_db)
 
         print "Done"
