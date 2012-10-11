@@ -91,16 +91,17 @@ def main():
     print "Test repositories"
     call("make run_tests", ros_env)
 
+
     # get repository depends-on list
     print "Get list of wet repositories that depend on %s"%repository
     apt = AptDepends(os.environ['OS_PLATFORM'], os.environ['ARCH'])
     depends_on_apt = []
     depends_on = []
-    for repository_apt in repositories_apt:
-        for d in apt.depends_on(repository_apt):
+    for r in repositories_apt:
+        for d in apt.depends_on(r):
             if not d in depends_on_apt and not d in repositories_apt and rosdep.has_apt(d):
                 depends_on_apt.append(d)
-                depends_on.append(rosdep.to_repository(d))
+                depends_on.append(rosdep.to_ros(d))
     print "Depends_on list for repositories: %s"%(', '.join(depends_on))
     if len(depends_on) == 0:
         copy_test_results(workspace, repositorybuildspace)
@@ -108,7 +109,9 @@ def main():
         return
 
     # install depends_on repositories from source
-    rosinstall = yaml.dump([{'git': {'local-name': repository, 'uri': distro._repoinfo[repository].url, 'version': 'master'}} for repository in depends_on], default_style=False)
+    rosinstall = ""
+    for r in depends_on:
+        rosinstall += distro.repositories[r].get_rosinstall_release()
     print "Rosinstall for depends_on:\n %s"%rosinstall
     with open(workspace+"/depends_on.rosinstall", 'w') as f:
         f.write(rosinstall)
@@ -140,7 +143,7 @@ def main():
     os.chdir(dependbuildspace)
     print "Create a new CMakeLists.txt file using catkin"
     call("catkin_init_workspace %s"%sourcespace, ros_env)
-    call("cmake ..", ros_env)        
+    call("cmake ../src/", ros_env)        
     ros_env = get_ros_env(os.path.join(dependbuildspace, 'buildspace/setup.bash'))
 
     # build repositories
