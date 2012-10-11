@@ -65,7 +65,7 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
     print "Downloading all repositories"
     rosinstall = ""
     for repository in repositories:
-        if "--devel" in args:
+        if use_devel_repo:
             print "Using devel distro file to download repositories"
             rosinstall += devel.repositories[repository].get_rosinstall()
         else:
@@ -104,7 +104,7 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
     call("make run_tests", ros_env)
 
     # see if we need to do more work or not
-    if not '--depends-on' in args:
+    if not test_depends_on:
         print "We're not testing the depends-on repositories"
         copy_test_results(workspace, repositorybuildspace)
         return

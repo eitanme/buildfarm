@@ -32,5 +32,5 @@ if __name__ == '__main__':
         print ex.msg
 
     except Exception as ex:
-        print "devel script failed. Check out the console output above for details."
+        print "prerelease script failed. Check out the console output above for details."
         raise ex
