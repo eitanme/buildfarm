@@ -4,15 +4,39 @@ import subprocess
 import sys
 import fnmatch
 import yaml
+import datetime
 from xml.etree.ElementTree import ElementTree
+
+
+class DevelDistro:
+    def __init__(self, name):
+        url = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s-devel.yaml'%name)
+        distro = yaml.load(url.read())['repositories']
+        self.repositories = {}
+        for name, data in distro.iteritems():
+            repo = DevelDistroRepo(name, data)
+            self.repositories[name] = repo
+
+class DevelDistroRepo:
+    def __init__(self, name, data):
+        self.name = name
+        self.url = data['url']
+        self.type = data['type']
+        self.version = 'void'
+        if 'version' in data.keys():
+            self.version = data['version']
+            
+    def get_rosinstall(self):
+        return yaml.dump([{self.type: {'local-name': self.name, 'uri': self.url, 'version': self.version}}], default_style=False)
+
 
 class RosDistro:
     def __init__(self, name):
         url = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s.yaml'%name)
-        distro = yaml.load(url.read())
+        distro = yaml.load(url.read())['repositories']
         self.repositories = {}
         self.packages = []
-        for name, data in distro['repositories'].iteritems():
+        for name, data in distro.iteritems():
             repo = RosDistroRepo(data)
             self.repositories[name] = repo
             for p in repo.packages:
@@ -36,7 +60,7 @@ class RosDistroRepo:
         return rosinstall
 
 
-    def get_rosinstall_prerelease(self):
+    def get_rosinstall_latest(self):
         rosinstall = ""
         for p in self.packages:
             rosinstall += yaml.dump([{'git': {'local-name': p, 'uri': self.url, 'version': '/'.join(['release', p])}}], default_style=False)
@@ -149,6 +173,9 @@ class RosDep:
         return self.a2r[a]
 
 
+
+def get_timestamp():
+    return str(datetime.datetime.now()).replace(' ','_').replace(':','.')
 
 def copy_test_results(workspace, buildspace):
     print "Preparing xml test results"

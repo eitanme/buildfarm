@@ -4,7 +4,6 @@ import sys
 import yaml
 import subprocess
 import urllib
-import datetime
 import fnmatch
 import shutil
 from xml.etree.ElementTree import ElementTree
@@ -25,11 +24,17 @@ def main():
 
     workspace = os.environ['WORKSPACE']
     tmpdir = os.path.join(workspace, 'tmp', 'devel_builds')
-    sourcespace = os.path.join(tmpdir, str(datetime.datetime.now()).replace(' ','_').replace(':','.'))
+    sourcespace = os.path.join(tmpdir, get_timestamp())
     stackbuildspace = os.path.join(sourcespace, 'build_stack')
     if os.path.isdir(tmpdir):
         shutil.rmtree(tmpdir)  # cleanup of old stuff
     os.makedirs(sourcespace)
+
+    # parse the devel distro file
+    print "Parsing devel yaml file for %s"%ros_distro
+    distro = DevelDistro(ros_distro)
+    if not stack in distro.repositories.keys():
+        raise BuildException("Stack %s does not exist in devel distro file"%stack)
 
     # Add ros to apt
     print "Add ros to apt sources"
@@ -47,21 +52,12 @@ def main():
     print "Create rosdep object"
     rosdep = RosDepResolver(ros_distro)
 
-    # parse the devel distro file
-    print "Parsing devel yaml file for %s"%ros_distro
-    f = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s-devel.yaml'%ros_distro)
-    devel = yaml.load(f.read())['repositories']
-
     # download the stack from source
     print "Downloading stack %s"%stack
-    if not stack in devel.keys():
-        raise BuildException("Stack %s does not exist in devel distro file"%stack)
-    conf = devel[stack]
-    rosinstall = yaml.dump([{conf['type']: {'local-name': stack, 'uri': conf['url'], 'version': conf['version']}}], default_style=False)
+    rosinstall = distro.repositories[stack].get_rosinstall()
     print "Rosinstall for stack %s:\n %s"%(stack, rosinstall)
     with open(workspace+"/stack.rosinstall", 'w') as f:
         f.write(rosinstall)
-    print "Create rosinstall file for stack %s"%stack
     call("rosinstall %s %s/stack.rosinstall --catkin"%(sourcespace, workspace))
 
     # install the stack dependencies
