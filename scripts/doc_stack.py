@@ -189,7 +189,6 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     repos = yaml.load(f.read())
 
     print "Finding information for stack %s" % stack
-    print repos.keys()
 
     if not stack in repos.keys():
         #Try to load from the dry yaml file
@@ -204,7 +203,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     homepage = 'http://ros.org/rosdoclite'
 
     #Select the appropriate rosinstall file
-    rosinstall = yaml.dump(conf, default_style=False)
+    rosinstall = yaml.dump(conf['rosinstall'], default_style=False)
 
     print "Rosinstall for stack %s:\n%s"%(stack, rosinstall)
     with open(workspace+"/stack.rosinstall", 'w') as f:
@@ -244,7 +243,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         deps = [d.name for d in stack_manifest.depends]
         stack_relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, stack)
         stack_doc_path = os.path.abspath(stack_relative_doc_path)
-        write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s/api/%s/html" %(homepage, ros_distro, stack), packages, tags_db)
+        write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['vcs_type'], conf['vcs_url'], "%s/%s/api/%s/html" %(homepage, ros_distro, stack), packages, tags_db)
         for dep in deps:
             if dep not in packages:
                 if ros_dep.has_ros(dep):
@@ -358,7 +357,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         #We also need to add information to each package manifest that we only
         #have availalbe in this script like vcs location and type
         write_distro_specific_manifest(os.path.join(pkg_doc_path, 'manifest.yaml'),
-                                       package, conf['type'], conf['url'], "%s/%s/api/%s/html" %(homepage, ros_distro, package),
+                                       package, conf['vcs_type'], conf['vcs_url'], "%s/%s/api/%s/html" %(homepage, ros_distro, package),
                                        tags_db)
 
         print "Done"
