@@ -189,6 +189,8 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     repos = yaml.load(f.read())
 
     print "Finding information for stack %s" % stack
+    print repos.keys()
+
     if not stack in repos.keys():
         #Try to load from the dry yaml file
         f = urllib.urlopen('https://raw.github.com/eitanme/rosdistro/master/releases/%s-dry-doc.yaml'%ros_distro)
