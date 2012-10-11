@@ -243,7 +243,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         deps = [d.name for d in stack_manifest.depends]
         stack_relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, stack)
         stack_doc_path = os.path.abspath(stack_relative_doc_path)
-        write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s" %(homepage, stack_relative_doc_path), packages)
+        write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['type'], conf['url'], "%s/%s" %(homepage, stack_relative_doc_path), packages, tags_db)
         for dep in deps:
             if dep not in packages:
                 if ros_dep.has_ros(dep):
