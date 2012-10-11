@@ -85,9 +85,6 @@ def write_distro_specific_manifest(manifest_file, package, vcs_type, vcs_url, ap
     if not os.path.isdir(os.path.dirname(manifest_file)):
         os.makedirs(os.path.dirname(manifest_file))
 
-    with open(manifest_file, 'w+') as f:
-        yaml.safe_dump(m_yaml, f, default_flow_style=False)
-
     #Update our dependency list
     if 'depends' in m_yaml and type(m_yaml['depends']) == list:
         tags_db.add_forward_deps(package, m_yaml['depends'])
@@ -100,6 +97,10 @@ def write_distro_specific_manifest(manifest_file, package, vcs_type, vcs_url, ap
     #Check to see if this package is part of any metapackages
     if tags_db.has_metapackages(package):
         m_yaml['metapackages'] = tags_db.get_metapackages(package)
+
+    with open(manifest_file, 'w+') as f:
+        yaml.safe_dump(m_yaml, f, default_flow_style=False)
+
         
 
 def get_stack_package_paths(stack_folder):
@@ -214,6 +215,10 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
 
     apt_deps = []
     ros_dep = RosDepResolver(ros_distro)
+
+    #Load information about existing tags
+    tags_db = TagsDb(ros_distro, workspace)
+
     if catkin_stack:
         #Get the dependencies of any catkin packages in the repo
         deps = get_dependencies(stack_path)
@@ -312,9 +317,6 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
             call("cmake ..", ros_env)
             generate_messages_dry(ros_env, name)
         os.chdir(old_dir)
-
-    #Load information about existing tags
-    tags_db = TagsDb(ros_distro, workspace)
 
     stack_tags = []
     for package, package_path in zip(packages, package_paths):

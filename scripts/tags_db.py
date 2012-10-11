@@ -77,7 +77,6 @@ class TagsDb(object):
         for package, deps in self.metapackages.iteritems():
             for dep in deps:
                 self.metapackage_index.setdefault(dep, []).append(package)
-        print "BUILT METAPACKAGE INDEX:\n %s" % self.metapackage_index
 
     def build_reverse_deps(self):
         #Build reverse dependencies
