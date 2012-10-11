@@ -320,7 +320,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         for name, path in zip(packages, package_paths):
             #Make sure to check that a CMake file exists before attempting to
             #do message generation
-            if os.path.isfile(os.join(path, 'CMakeLists.txt')):
+            if os.path.isfile(os.path.join(path, 'CMakeLists.txt')):
                 os.chdir(path)
                 os.makedirs('build')
                 os.chdir('build')
