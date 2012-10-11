@@ -58,7 +58,7 @@ def main():
     print "Downloading all repositories"
     rosinstall = ""
     for repository in repositories:
-        rosinstall += distro.repositories[repository].get_rosinstall_latest()
+        rosinstall += distro.repositories[repository].get_rosinstall_prerelease()
     print "rosinstall file for all repositories: \n %s"%rosinstall
     with open(workspace+"/repository.rosinstall", 'w') as f:
         f.write(rosinstall)

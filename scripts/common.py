@@ -27,13 +27,16 @@ class RosDistroRepo:
         if 'packages' in data.keys():
             self.packages = data['packages'].keys()
             
-    def get_rosinstall_release(self):
+    def get_rosinstall_release(self, version=None):
+        if not version:
+            version = self.version
         rosinstall = ""
         for p in self.packages:
-            rosinstall += yaml.dump([{'git': {'local-name': p, 'uri': self.url, 'version': '/'.join(['release', p, self.version])}}], default_style=False)
+            rosinstall += yaml.dump([{'git': {'local-name': p, 'uri': self.url, 'version': '/'.join(['release', p, version])}}], default_style=False)
         return rosinstall
 
-    def get_rosinstall_latest(self):
+
+    def get_rosinstall_prerelease(self):
         rosinstall = ""
         for p in self.packages:
             rosinstall += yaml.dump([{'git': {'local-name': p, 'uri': self.url, 'version': '/'.join(['release', p])}}], default_style=False)
@@ -207,7 +210,7 @@ def get_dependencies(source_folder):
     if len(pkgs) > 0:
         print "In folder %s, found packages %s"%(source_folder, ', '.join(local_packages))
     else:
-        raise BuildException("In folder %s, found no packages"%source_folder)
+        raise BuildException("Found no packages in folder %s. Are you sure your packages have a packages.xml file?"%source_folder)
 
     depends = []
     for name, pkg in pkgs.iteritems():
