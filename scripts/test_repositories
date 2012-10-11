@@ -181,12 +181,12 @@ def main():
 
     if len(args) <= 1:
         print "Usage: %s ros_distro repository_name"%sys.argv[0]
-        raise BuildException("Wrong number of parameters for prerelase script")
+        raise BuildException("Wrong number of parameters for test_repositories script")
 
     ros_distro = args[0]
     repositories = args[1:]
-    workspace = 'bla'#os.environ['WORKSPACE']    
-    print "Working on distro %s and repositories %s"%(ros_distro, ', '.join(repositories))
+    workspace = os.environ['WORKSPACE']    
+    print "Running test_repositories test on distro %s and repositories %s"%(ros_distro, ', '.join(repositories))
 
     test_repositories(ros_distro, repositories, workspace, options.devel, options.depends-on)
 
