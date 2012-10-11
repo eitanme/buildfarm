@@ -215,6 +215,10 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
 
     apt_deps = []
     ros_dep = RosDepResolver(ros_distro)
+
+    #Load information about existing tags
+    tags_db = TagsDb(ros_distro, workspace)
+
     if catkin_stack:
         #Get the dependencies of any catkin packages in the repo
         deps = get_dependencies(stack_path)
@@ -313,9 +317,6 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
             call("cmake ..", ros_env)
             generate_messages_dry(ros_env, name)
         os.chdir(old_dir)
-
-    #Load information about existing tags
-    tags_db = TagsDb(ros_distro, workspace)
 
     stack_tags = []
     for package, package_path in zip(packages, package_paths):
