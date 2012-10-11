@@ -117,13 +117,13 @@ class TagsDb(object):
     #Write new tag locations for a list of packages
     def commit_db(self):
         with open(os.path.join(self.path, "%s.yaml" % self.distro_name), 'w') as f:
-            yaml.safe_dump(self.tags, f, default_flow_style=False)
+            yaml.safe_dump(self.tags, f)
 
         with open(os.path.join(self.path, "%s-deps.yaml" % self.distro_name), 'w') as f:
-            yaml.safe_dump(self.forward_deps, f, default_flow_style=False)
+            yaml.safe_dump(self.forward_deps, f)
 
         with open(os.path.join(self.path, "%s-metapackages.yaml" % self.distro_name), 'w') as f:
-            yaml.safe_dump(self.metapackages, f, default_flow_style=False)
+            yaml.safe_dump(self.metapackages, f)
 
         old_dir = os.getcwd()
         os.chdir(self.path)
