@@ -7,6 +7,10 @@ import yaml
 import datetime
 from xml.etree.ElementTree import ElementTree
 
+def append_pymodules_if_needed():
+    #TODO: This is a hack, in the chroot, the default python path does not
+    if not os.path.abspath("/usr/lib/pymodules/python2.7") in sys.path:
+        sys.path.append("/usr/lib/pymodules/python2.7")
 
 class DevelDistro:
     def __init__(self, name):
@@ -99,6 +103,9 @@ class AptDepends:
                     raise BuildException("Found 'depends' but not 'package' while parsing the apt repository index file")
                 self.dep[package] = [d.split(' ')[0] for d in (l.split('Depends: ')[1].split(', '))]
                 package = None
+
+    def has_package(self, package):
+        return package in self.dep
         
     def depends1(self, package):
         return self.depends(package, one=True)
@@ -245,35 +252,50 @@ def call(command, envir=None):
         raise BuildException(msg)
     return res
 
-def build_dependency_graph(source_folder):
-    sys.path.append("/usr/lib/pymodules/python2.7/")
+def get_nonlocal_dependencies(catkin_packages, stacks):
+    append_pymodules_if_needed()
     from catkin_pkg import packages
-    pkgs = packages.find_packages(source_folder)
-    local_packages = [os.path.basename(k) for k in pkgs.keys()]
+    import rospkg
 
-    depends = {}
-    for full_name, pkg in pkgs.iteritems():
-        name = os.path.basename(full_name)
-        depends[name] = []
-        for d in pkg.build_depends + pkg.test_depends + pkg.run_depends:
-            #we only want to build a graph for our local deps
-            if d.name in local_packages:
-                depends[name].append(d.name)
+    depends = []
+    #First, we build the catkin deps
+    for name, path in catkin_packages.iteritems():
+        pkg_info = packages.parse_package(path)
+        depends.extend([d.name \
+                        for d in pkg_info.build_depends + pkg_info.test_depends + pkg_info.run_depends \
+                        if not d.name in catkin_packages and not d.name in depends])
+
+    #Next, we build the manifest deps
+    for name, path in stacks.iteritems():
+        manifest = rospkg.parse_manifest_file(path, rospkg.STACK_FILE)
+        depends.extend([d.name \
+                        for d in manifest.depends + manifest.rosdeps \
+                        if not d.name in catkin_packages \
+                        and not d.name in stacks \
+                        and not d.name in depends])
 
     return depends
 
-def build_dependency_graph_manifest(source_folder):
-    sys.path.append("/usr/lib/pymodules/python2.7/")
+def build_local_dependency_graph(catkin_packages, manifest_packages):
+    append_pymodules_if_needed()
+    from catkin_pkg import packages
     import rospkg
 
     depends = {}
-    location_cache = {}
-    local_packages = rospkg.list_by_path(rospkg.MANIFEST_FILE, source_folder, location_cache)
-    for name, path in location_cache.iteritems():
+    #First, we build the catkin dep tree
+    for name, path in catkin_packages.iteritems():
+        depends[name] = []
+        pkg_info = packages.parse_package(path)
+        for d in pkg_info.build_depends + pkg_info.test_depends + pkg_info.run_depends:
+            if d.name in catkin_packages:
+                depends[name].append(d.name)
+
+    #Next, we build the manifest dep tree
+    for name, path in manifest_packages.iteritems():
         manifest = rospkg.parse_manifest_file(path, rospkg.MANIFEST_FILE)
         depends[name] = []
         for d in manifest.depends + manifest.rosdeps:
-            if d.name in local_packages:
+            if d.name in catkin_packages or d.name in manifest_packages:
                 depends[name].append(str(d.name))
 
     return depends
@@ -303,7 +325,7 @@ def get_dependency_build_order(depends):
 def get_dependencies(source_folder):
     # get the dependencies
     print "Get the dependencies of source folder %s"%source_folder
-    sys.path.append("/usr/lib/pymodules/python2.7/")
+    append_pymodules_if_needed()
     from catkin_pkg import packages
     pkgs = packages.find_packages(source_folder)
     local_packages = pkgs.keys()

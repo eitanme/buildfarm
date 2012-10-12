@@ -104,7 +104,7 @@ def main():
     print "Done installing ros and rosdoc_lite"
 
     #Run documentation generation on the stack
-    document_stack(workspace, docspace, ros_distro, stack, os.environ['OS_PLATFORM'], os.environ['ARCH'])
+    document_repo(workspace, docspace, ros_distro, stack, os.environ['OS_PLATFORM'], os.environ['ARCH'])
 
 if __name__ == '__main__':
     main()
