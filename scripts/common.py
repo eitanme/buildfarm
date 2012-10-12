@@ -4,43 +4,85 @@ import subprocess
 import sys
 import fnmatch
 import yaml
+import datetime
 from xml.etree.ElementTree import ElementTree
+
+
+class DevelDistro:
+    def __init__(self, name):
+        url = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s-devel.yaml'%name)
+        distro = yaml.load(url.read())['repositories']
+        self.repositories = {}
+        for name, data in distro.iteritems():
+            repo = DevelDistroRepo(name, data)
+            self.repositories[name] = repo
+
+class DevelDistroRepo:
+    def __init__(self, name, data):
+        self.name = name
+        self.url = data['url']
+        self.type = data['type']
+        self.version = 'void'
+        if 'version' in data.keys():
+            self.version = data['version']
+            
+    def get_rosinstall(self):
+        return yaml.dump([{self.type: {'local-name': self.name, 'uri': '%s'%self.url, 'version': '%s'%self.version}}], default_style=False)
+
 
 class RosDistro:
     def __init__(self, name):
         url = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s.yaml'%name)
-        distro = yaml.load(url.read())
+        distro = yaml.load(url.read())['repositories']
         self.repositories = {}
-        self.packages = []
-        for name, data in distro['repositories'].iteritems():
-            repo = RosDistroRepo(data)
-            self.repositories[name] = repo
-            for p in repo.packages:
-                self.packages.append(p)
-
+        self.packages = {}
+        for repo_name, data in distro.iteritems():
+            if 'packages' in data.keys():
+                pkgs = []
+                url = data['url']
+                version = data['version']
+                for pkg_name in data['packages'].keys():
+                    pkg = RosDistroPackage(pkg_name, url, version)
+                    pkgs.append(pkg)
+                    self.packages[pkg_name] = pkg
+                self.repositories[repo_name] = RosDistroRepo(repo_name, pkgs)
+                    
 
 class RosDistroRepo:
-    def __init__(self, data):
-        self.url = data['url']
-        self.version = data['version']
-        self.packages = []
-        if 'packages' in data.keys():
-            self.packages = data['packages'].keys()
-            
+    def __init__(self, name, pkgs):
+        self.name = name
+        self.pkgs = pkgs
+    
+    def get_rosinstall_release(self, version=None):
+        rosinstall = ""
+        for p in self.pkgs:
+            rosinstall += p.get_rosinstall_release(version)
+        return rosinstall
+
+    def get_rosinstall_latest(self):
+        rosinstall = ""
+        for p in self.pkgs:
+            rosinstall += p.get_rosinstall_latest()
+        return rosinstall
+
+
+class RosDistroPackage:
+    def __init__(self, name, url, version):
+        self.name = name
+        self.url = url
+        self.version = version
+
     def get_rosinstall_release(self, version=None):
         if not version:
             version = self.version
-        rosinstall = ""
-        for p in self.packages:
-            rosinstall += yaml.dump([{'git': {'local-name': p, 'uri': self.url, 'version': '/'.join(['release', p, version])}}], default_style=False)
-        return rosinstall
+        return yaml.safe_dump([{'git': {'local-name': self.name, 'uri': self.url, 'version': '?'.join(['release', self.name, version])}}], 
+                              default_style=False).replace('?', '/')
+
+    def get_rosinstall_latest(self):
+        return yaml.dump([{'git': {'local-name': self.name, 'uri': self.url, 'version': '?'.join(['release', self.name])}}], 
+                         default_style=False).replace('?', '/')
 
 
-    def get_rosinstall_prerelease(self):
-        rosinstall = ""
-        for p in self.packages:
-            rosinstall += yaml.dump([{'git': {'local-name': p, 'uri': self.url, 'version': '/'.join(['release', p])}}], default_style=False)
-        return rosinstall
 
 
 
@@ -149,6 +191,9 @@ class RosDep:
         return self.a2r[a]
 
 
+
+def get_timestamp():
+    return str(datetime.datetime.now()).replace(' ','_').replace(':','.')
 
 def copy_test_results(workspace, buildspace):
     print "Preparing xml test results"
