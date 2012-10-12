@@ -133,7 +133,7 @@ def get_stack_package_paths(stack_folder):
     #Remove any duplicates
     return list(set(packages))
 
-def build_tagfile(apt_deps, tags_db, rosdoc_tagfile, current_package):
+def build_tagfile(apt_deps, tags_db, rosdoc_tagfile, current_package, ordered_deps, docspace, ros_distro):
     #Get the relevant tags from the database
     tags = []
 
@@ -144,6 +144,20 @@ def build_tagfile(apt_deps, tags_db, rosdoc_tagfile, current_package):
             for tag in tags_db.get_tags(dep):
                 if tag['package'] != current_package:
                     tags.append(tag)
+
+    #Add tags built locally in dependency order
+    for dep in ordered_deps:
+        #we'll exit the loop when we reach ourself
+        if dep == current_package:
+            break
+
+        relative_tags_path = "doc/%s/api/%s/tags/%s.tag" % (ros_distro, dep, dep)
+        if os.path.isfile(os.path.join(docspace, relative_tags_path)):
+            tags.append({'docs_url': '../../api/%s/html' % dep, 
+                         'location': 'file://%s' % os.path.join(docspace, relative_tags_path),
+                         'package': '%s' % dep})
+        else:
+            print "DID NOT FIND TAG FILE at: %s" % os.path.join(docspace, relative_tags_path)
 
     with open(rosdoc_tagfile, 'w+') as tags_file:
         yaml.dump(tags, tags_file)
@@ -197,6 +211,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         if not stack in repos.keys():
             raise Exception("Stack %s does not exist in %s rosdistro file" % (stack, ros_distro))
 
+    #Get the rosinstall configuration for the repo
     conf = repos[stack]
 
     #TODO: Change this or parameterize or whatever
@@ -236,6 +251,8 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
                     apt_deps.append(ros_dep.to_apt(dep))
                 else:
                     print "WARNING: The following dep cannot be resolved: %s... skipping." % dep
+
+        local_dep_graph = build_dependency_graph(stack_path)
     else:
         import rospkg
         #Get the dependencies of a dry stack from the stack.xml
@@ -252,6 +269,12 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
                     apt_dep = "ros-%s-%s" % (ros_distro, dep.replace('_', '-'))
                 apt_deps.append(apt_dep)
 
+        local_dep_graph = build_dependency_graph_manifest(stack_path)
+
+    #Need to make sure to re-order packages to be run in dependency order
+    new_order = get_dependency_build_order(local_dep_graph)
+    packages, package_paths = reorder_paths(new_order, packages, package_paths)
+    print "Build order that honors deps:\n%s" % zip(packages, package_paths)
 
     #Get the apt name of the current stack
     if ros_dep.has_ros(stack):
@@ -324,7 +347,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     stack_tags = []
     for package, package_path in zip(packages, package_paths):
         #Build a tagfile list from dependencies for use by rosdoc
-        build_tagfile(full_apt_deps, tags_db, 'rosdoc_tags.yaml', package)
+        build_tagfile(full_apt_deps, tags_db, 'rosdoc_tags.yaml', package, packages, docspace, ros_distro)
 
         relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, package)
         pkg_doc_path = os.path.abspath(relative_doc_path)

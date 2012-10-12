@@ -200,6 +200,61 @@ def call(command, envir=None):
         raise BuildException(msg)
     return res
 
+def build_dependency_graph(source_folder):
+    sys.path.append("/usr/lib/pymodules/python2.7/")
+    from catkin_pkg import packages
+    pkgs = packages.find_packages(source_folder)
+    local_packages = [os.path.basename(k) for k in pkgs.keys()]
+
+    depends = {}
+    for full_name, pkg in pkgs.iteritems():
+        name = os.path.basename(full_name)
+        depends[name] = []
+        for d in pkg.build_depends + pkg.test_depends + pkg.run_depends:
+            #we only want to build a graph for our local deps
+            if d.name in local_packages:
+                depends[name].append(d.name)
+
+    return depends
+
+def build_dependency_graph_manifest(source_folder):
+    sys.path.append("/usr/lib/pymodules/python2.7/")
+    import rospkg
+
+    depends = {}
+    location_cache = {}
+    local_packages = rospkg.list_by_path(rospkg.MANIFEST_FILE, source_folder, location_cache)
+    for name, path in location_cache.iteritems():
+        manifest = rospkg.parse_manifest_file(path, rospkg.MANIFEST_FILE)
+        depends[name] = []
+        for d in manifest.depends + manifest.rosdeps:
+            if d.name in local_packages:
+                depends[name].append(str(d.name))
+
+    return depends
+
+def reorder_paths(order, packages, paths):
+    #we want to make sure that we can still associate packages with paths
+    new_paths = []
+    for package in order:
+        old_index = [i for i, name in enumerate(packages) if package == name][0]
+        new_paths.append(paths[old_index])
+
+    return order, new_paths
+
+def get_dependency_build_order(depends):
+    import networkx as nx
+    graph = nx.DiGraph()
+
+    for name, deps in depends.iteritems():
+        graph.add_node(name)
+        graph.add_edges_from([(name, d) for d in deps])
+
+    order = nx.topological_sort(graph)
+    order.reverse()
+
+    return order
+
 def get_dependencies(source_folder):
     # get the dependencies
     print "Get the dependencies of source folder %s"%source_folder
