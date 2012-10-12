@@ -220,7 +220,7 @@ def build_repo_messages_manifest(manifest_packages, build_order, ros_distro):
                 print "Creating an export line that guesses the appropriate python paths for each package"
                 print "WARNING: This will not properly generate message files within this repo for python documentation."
                 if os.path.isdir(os.path.join(path, 'src')):
-                    path_string = os.pathsep.join(os.path.join(path, 'src'), path_string)
+                    path_string = "%s:%s" %(os.path.join(path, 'src'), path_string)
 
             #If it's not catkin, then we'll generate python messages
             else:
@@ -331,14 +331,20 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
     #Get any non local dependencies and install them
     apt_deps = []
     ros_dep = RosDepResolver(ros_distro)
+    apt = AptDepends(platform, arch)
     deps = get_nonlocal_dependencies(catkin_packages, stacks)
     print "Dependencies: %s" % deps
     for dep in deps:
         if ros_dep.has_ros(dep):
             apt_dep = ros_dep.to_apt(dep)
+            apt_deps.append(apt_dep)
         else:
             apt_dep = "ros-%s-%s" % (ros_distro, dep.replace('_', '-'))
-        apt_deps.append(apt_dep)
+            if apt.has_package(apt_dep):
+                apt_deps.append(apt_dep)
+            else:
+                print "WARNING, could not find dependency %s, not adding to list" % apt_dep
+
 
     print "Apt dependencies: %s" % apt_deps
 
@@ -362,7 +368,6 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
     print "Build order that honors deps:\n%s" % build_order
 
     #We'll need the full list of apt_deps to get tag files
-    apt = AptDepends(platform, arch)
     full_apt_deps = copy.deepcopy(apt_deps)
     for dep in apt_deps:
         print "Getting dependencies for %s" % dep
