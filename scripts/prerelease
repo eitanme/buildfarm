@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 from test_repositories import *
-
+import optparse
 
 
 def main():
     parser = optparse.OptionParser()
-    parser.add_option("--devel", action="store_true", default=False)
     (options, args) = parser.parse_args()
 
     if len(args) <= 1:
@@ -17,7 +16,7 @@ def main():
     workspace = os.environ['WORKSPACE']
     print "Running prerelease test on distro %s and repositories %s"%(ros_distro, ', '.join(repositories))
 
-    test_repositories(ros_distro, repositories, workspace, options.devel, test_depends_on=True)
+    test_repositories(ros_distro, repositories, workspace, use_devel_repo=False, test_depends_on=True)
 
 
 

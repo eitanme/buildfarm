@@ -16,7 +16,7 @@ from common import *
 
 
 def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_depends_on):
-    print "Testing on distro %s"
+    print "Testing on distro %s"%ros_distro    
     print "Testing repositories %s"%', '.join(repositories)
     if use_devel_repo:
         print "Testing from devel repo"
@@ -40,9 +40,12 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
     distro = RosDistro(ros_distro)
     devel = DevelDistro(ros_distro)
     for repository in repositories:
-        print "Finding repo for repository %s"%repository
-        if not repository in distro.repositories.keys():
-            raise BuildException("Repository %s does not exist in Rosdistro"%repository)
+        print "Checking if repo %s exists in distr or devel file"%repository
+        if not use_devel_repo and not repository in distro.repositories.keys():
+            raise BuildException("Repository %s does not exist in Ros Distro"%repository)
+        if use_devel_repo and not repository in devel.repositories.keys():
+            raise BuildException("Repository %s does not exist in Devel Distro"%repository)
+
 
     # Add ros to apt
     print "Add ros to apt sources"
@@ -60,6 +63,7 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
     print "Create rosdep object"
     rosdep = RosDepResolver(ros_distro)
     repositories_apt = [rosdep.to_apt(s) for s in repositories]
+    distro_apt = [rosdep.to_apt(s) for s in distro.packages]
 
     # download the repositories from source
     print "Downloading all repositories"
@@ -116,10 +120,10 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
     depends_on = []
     for r in repositories_apt:
         for d in apt.depends_on(r):
-            if not d in depends_on_apt and not d in repositories_apt and rosdep.has_apt(d):
+            if d in distro_apt and not d in depends_on_apt and not d in repositories_apt:
                 depends_on_apt.append(d)
                 depends_on.append(rosdep.to_ros(d))
-    print "Depends_on list for repositories: %s"%(', '.join(depends_on))
+    print "Wet depends_on list for repositories: %s"%(', '.join(depends_on))
     if len(depends_on) == 0:
         copy_test_results(workspace, repositorybuildspace)
         print "No wet groovy repositories in apt depend on this repository. Test finished here"
@@ -127,8 +131,8 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
 
     # install depends_on repositories from source
     rosinstall = ""
-    for r in depends_on:
-        rosinstall += distro.repositories[r].get_rosinstall_release()
+    for d in depends_on:
+        rosinstall += distro.packages[d].get_rosinstall_release()
     print "Rosinstall for depends_on:\n %s"%rosinstall
     with open(workspace+"/depends_on.rosinstall", 'w') as f:
         f.write(rosinstall)
