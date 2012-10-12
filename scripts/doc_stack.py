@@ -343,7 +343,7 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
             if apt.has_package(apt_dep):
                 apt_deps.append(apt_dep)
             else:
-                print "WARNING, could not find dependency %s, not adding to list" % apt_dep
+                print "WARNING, could not find dependency %s, not adding to list" % dep
 
 
     print "Apt dependencies: %s" % apt_deps
