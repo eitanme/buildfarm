@@ -24,7 +24,7 @@ if __name__ == '__main__':
     # global try
     try:
         main()
-        print "devel script finished cleanly"
+        print "prerelease script finished cleanly"
 
     # global catch
     except BuildException as ex:
