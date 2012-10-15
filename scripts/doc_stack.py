@@ -343,7 +343,7 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
     apt_deps = []
     ros_dep = RosDepResolver(ros_distro)
     apt = AptDepends(platform, arch)
-    deps = get_nonlocal_dependencies(catkin_packages, stacks)
+    deps = get_nonlocal_dependencies(catkin_packages, stacks, manifest_packages)
     print "Dependencies: %s" % deps
     for dep in deps:
         if ros_dep.has_ros(dep):
