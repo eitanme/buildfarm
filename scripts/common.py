@@ -70,7 +70,7 @@ class RosDistroPackage:
     def __init__(self, name, url, version):
         self.name = name
         self.url = url
-        self.version = version
+        self.version = version.split('-')[0]
 
     def get_rosinstall_release(self, version=None):
         if not version:
