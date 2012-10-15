@@ -447,7 +447,9 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
     doc_path = os.path.abspath("%s/doc/%s" % (docspace, ros_distro))
 
     #Copy the files to the appropriate place
-    call("rsync -e \"ssh -o StrictHostKeyChecking=no\" -qr %s rosbuild@wgs32:/var/www/www.ros.org/html/rosdoclite" % (doc_path))
+    #call("rsync -e \"ssh -o StrictHostKeyChecking=no\" -qr %s rosbuild@wgs32:/var/www/www.ros.org/html/rosdoclite" % (doc_path))
+    command = ['rsync', '-e', '"ssh -o StrictHostKeyChecking=no"', '-qr', '%s'%doc_path, 'rosbuild@wgs32:/var/www/www.ros.org/html/rosdoclite']
+    call_with_list(command)
 
     #Write the new tags to the database if there are any to write
     for name, tags in repo_tags.iteritems():
