@@ -5,6 +5,7 @@ import jenkins
 import urllib
 import yaml
 import subprocess
+import os
 
 ubuntu_distro = {'fuerte': ['precise'],
                  'groovy': ['precise']}
@@ -25,21 +26,22 @@ def call(command, envir=None):
 def main():
     if len(sys.argv) != 3:
         print "Usage: %s ros_distro file"%(sys.argv[0])
-        print "Ex: %s fuerte dry-doc"%(sys.argv[0])
+        print "Ex: %s fuerte folder_name"%(sys.argv[0])
         sys.exit(0)
     ros_distro = sys.argv[1]
-    file_ext = sys.argv[2]
-    
-    # parse the devel distro file
-    print "Parsing doc yaml file for %s"%ros_distro
-    f = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s-%s.yaml'%(ros_distro, file_ext))
-    devel = yaml.load(f.read())
+    file_dir = sys.argv[2]
 
-    # create all jobs
-    for s, conf in devel.iteritems():
+    rosinstall_files = []
+    for ls_file in os.listdir(file_dir):
+        if ls_file.endswith(".rosinstall"):
+            rosinstall_files.append(os.path.splitext(os.path.basename(ls_file))[0])
+
+    for s in rosinstall_files:
+        if s.endswith('depends'):
+            continue
+
         for u in ubuntu_distro[ros_distro]:
             for a in arch:
-                #call("./run_jenkins_vcs %s %s %s eitan@hidof.com %s %s %s doc %s %s"%(u, a, 'doc-'+ros_distro+'-'+s, conf['type'], conf['url'], conf['version'], ros_distro, s))
                 call("./run_jenkins_now.py %s %s %s eitan@hidof.com doc %s %s"%(u, a, ros_distro+'-'+s, ros_distro, s))
 
 if __name__ == "__main__":
