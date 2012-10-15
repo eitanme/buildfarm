@@ -176,14 +176,21 @@ def build_tagfile(apt_deps, tags_db, rosdoc_tagfile, current_package, ordered_de
         yaml.dump(tags, tags_file)
 
 def generate_messages_catkin(env):
-    targets = call("make help", env).split('\n')
+    try:
+        targets = call("make help", env).split('\n')
+    except BuildException as e:
+        return
+
     genpy_targets = [t.split()[1] for t in targets if t.endswith("genpy")]
     print genpy_targets
     for t in genpy_targets:
         call("make %s" % t, env)
 
 def generate_messages_dry(env, name):
-    targets = call("make help", env).split('\n')
+    try:
+        targets = call("make help", env).split('\n')
+    except BuildException as e:
+        return
 
     if [t for t in targets if t.endswith("ROSBUILD_genaction_msgs")]:
         call("make ROSBUILD_genaction_msgs", env)
