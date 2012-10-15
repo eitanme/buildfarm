@@ -239,10 +239,9 @@ def get_ros_env(setup_file):
     print "ROS environment: %s"%str(ros_env)
     return ros_env
 
-
-def call(command, envir=None):
+def call_with_list(command, envir=None):
     print "Executing command '%s'"%command
-    helper = subprocess.Popen(command.split(' '), stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True, env=envir)
+    helper = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True, env=envir)
     res, err = helper.communicate()
     print str(res)
     print str(err)
@@ -251,6 +250,9 @@ def call(command, envir=None):
         print "/!\  %s"%msg
         raise BuildException(msg)
     return res
+
+def call(command, envir=None):
+    return call_with_list(command.split(' '))
 
 def get_nonlocal_dependencies(catkin_packages, stacks):
     append_pymodules_if_needed()

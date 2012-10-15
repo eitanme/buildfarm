@@ -233,6 +233,10 @@ def build_repo_messages_manifest(manifest_packages, build_order, ros_distro):
                 call("cmake ..", ros_env)
                 generate_messages_dry(ros_env, name)
                 os.chdir(old_dir)
+        else:
+            #If the package does not have a CmakeLists.txt file, we still want
+            #to add it to our package path because other packages may depend on it
+            ros_env['ROS_PACKAGE_PATH'] = '%s:%s' % (path, ros_env['ROS_PACKAGE_PATH'])
 
     return "export PYTHONPATH=%s:$PYTHONPATH" % path_string
 
@@ -447,7 +451,9 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
     doc_path = os.path.abspath("%s/doc/%s" % (docspace, ros_distro))
 
     #Copy the files to the appropriate place
-    call("rsync -qr %s rosbuild@wgs32:/var/www/www.ros.org/html/rosdoclite" % (doc_path))
+    #call("rsync -e \"ssh -o StrictHostKeyChecking=no\" -qr %s rosbuild@wgs32:/var/www/www.ros.org/html/rosdoclite" % (doc_path))
+    command = ['bash', '-c', 'rsync -e "ssh -o StrictHostKeyChecking=no" -qr %s rosbuild@wgs32:/var/www/www.ros.org/html/rosdoclite' % doc_path]
+    call_with_list(command)
 
     #Write the new tags to the database if there are any to write
     for name, tags in repo_tags.iteritems():
