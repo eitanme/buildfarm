@@ -42,10 +42,5 @@ def main():
                 #call("./run_jenkins_vcs %s %s %s eitan@hidof.com %s %s %s doc %s %s"%(u, a, 'doc-'+ros_distro+'-'+s, conf['type'], conf['url'], conf['version'], ros_distro, s))
                 call("./run_jenkins_now.py %s %s %s eitan@hidof.com doc %s %s"%(u, a, ros_distro+'-'+s, ros_distro, s))
 
-
-
-
-
-
 if __name__ == "__main__":
     main()

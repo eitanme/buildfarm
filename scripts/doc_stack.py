@@ -33,7 +33,7 @@
 #
 # Revision $Id: rosdoc 11469 2010-10-12 00:56:25Z kwc $
 
-import urllib
+import urllib2
 import os
 import sys
 import yaml
@@ -111,29 +111,42 @@ def write_distro_specific_manifest(manifest_file, package, vcs_type, vcs_url, ap
     with open(manifest_file, 'w+') as f:
         yaml.safe_dump(m_yaml, f, default_flow_style=False)
 
-        
-
-def get_stack_package_paths(stack_folder):
-    #TODO: This is a hack, in the chroot, the default python path does not
-    #include the directory to which catkin installs
-    sys.path.append("/usr/lib/pymodules/python2.7/")
-    from catkin_pkg import packages as catkin_packages
+def get_repo_manifests(repo_folder, manifest='package'):
+    append_pymodules_if_needed()
     import rospkg
 
-    location_cache = {}
-    packages = []
+    manifest_type = rospkg.MANIFEST_FILE
 
-    #find dry packages
-    packages.extend([os.path.abspath(location_cache[pkg]) \
-                     for pkg in rospkg.list_by_path(rospkg.MANIFEST_FILE, stack_folder, location_cache)])
+    if manifest == 'stack':
+        manifest_type = rospkg.STACK_FILE
+
+    location_cache = {}
+
+    print rospkg.list_by_path(manifest_type, repo_folder, location_cache)
+
+    return location_cache
+
+def get_repo_packages(repo_folder):
+    append_pymodules_if_needed()
+    from catkin_pkg import packages as catkin_packages
+
+    paths = []
+
     #find wet packages
-    packages.extend([os.path.abspath(os.path.join(stack_folder, pkg_path)) \
-                     for pkg_path in catkin_packages.find_package_paths(stack_folder)])
+    paths.extend([os.path.abspath(os.path.join(repo_folder, pkg_path)) \
+                     for pkg_path in catkin_packages.find_package_paths(repo_folder)])
 
     #Remove any duplicates
-    return list(set(packages))
+    paths = list(set(paths))
 
-def build_tagfile(apt_deps, tags_db, rosdoc_tagfile, current_package):
+    packages = {}
+    for path in paths:
+        pkg_info = catkin_packages.parse_package(path)
+        packages[pkg_info.name] = path
+
+    return packages
+
+def build_tagfile(apt_deps, tags_db, rosdoc_tagfile, current_package, ordered_deps, docspace, ros_distro):
     #Get the relevant tags from the database
     tags = []
 
@@ -145,25 +158,22 @@ def build_tagfile(apt_deps, tags_db, rosdoc_tagfile, current_package):
                 if tag['package'] != current_package:
                     tags.append(tag)
 
+    #Add tags built locally in dependency order
+    for dep in ordered_deps:
+        #we'll exit the loop when we reach ourself
+        if dep == current_package:
+            break
+
+        relative_tags_path = "doc/%s/api/%s/tags/%s.tag" % (ros_distro, dep, dep)
+        if os.path.isfile(os.path.join(docspace, relative_tags_path)):
+            tags.append({'docs_url': '../../api/%s/html' % dep, 
+                         'location': 'file://%s' % os.path.join(docspace, relative_tags_path),
+                         'package': '%s' % dep})
+        else:
+            print "DID NOT FIND TAG FILE at: %s" % os.path.join(docspace, relative_tags_path)
+
     with open(rosdoc_tagfile, 'w+') as tags_file:
         yaml.dump(tags, tags_file)
-
-#As far as I know, the best way to check whether a stack is catkinized or not is to 
-#download the current rosdistro for catkin and see if the name is in the rosdistro file
-#TODO: This could be changed in Groovy to just check for presence of package.xml, but
-#this tool needs to work for fuerte too
-def is_catkin_stack(stack_name, ros_distro):
-    f = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s.yaml'%ros_distro)
-    catkin_repos = yaml.load(f.read())['repositories']
-    return stack_name in catkin_repos
-
-def get_stack_deb_name(stack_name, catkin_stack, ros_distro, ros_dep):
-    if not catkin_stack:
-        # Replacing underscores with dashes may not be sufficient, but I think
-        # it is for the old deb stuff
-        return "ros-%s-%s" % (ros_distro, stack_name.replace('_', '-'))
-    else:
-        return ros_dep.to_apt(stack_name)
 
 def generate_messages_catkin(env):
     targets = call("make help", env).split('\n')
@@ -181,86 +191,183 @@ def generate_messages_dry(env, name):
     if [t for t in targets if t.endswith("ROSBUILD_genmsg_py")]:
         call("make ROSBUILD_genmsg_py", env)
         print "Generated messages for %s" % name
+        
+def build_repo_messages_manifest(manifest_packages, build_order, ros_distro):
+    #Now, we go through all of our manifest packages and try to generate
+    #messages, or add them to the pythonpath if they turn out to be catkin
+    ros_env = get_ros_env('/opt/ros/%s/setup.bash' %ros_distro)
+    path_string = ''
 
-def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
-    print "Working on distro %s and stack %s" % (ros_distro, stack)
-    print "Parsing doc file for %s" % ros_distro
-    f = urllib.urlopen('https://raw.github.com/eitanme/rosdistro/master/releases/%s-doc.yaml'%ros_distro)
-    repos = yaml.load(f.read())
+    #Make sure to build in dependency order
+    for name in build_order:
+        if not name in manifest_packages:
+            continue
 
-    print "Finding information for stack %s" % stack
+        path = manifest_packages[name]
 
-    if not stack in repos.keys():
-        #Try to load from the dry yaml file
-        f = urllib.urlopen('https://raw.github.com/eitanme/rosdistro/master/releases/%s-dry-doc.yaml'%ros_distro)
-        repos = yaml.load(f.read())
-        if not stack in repos.keys():
-            raise Exception("Stack %s does not exist in %s rosdistro file" % (stack, ros_distro))
+        cmake_file = os.path.join(path, 'CMakeLists.txt')
+        if os.path.isfile(cmake_file):
+            catkin = False
+            #Check to see whether the package is catkin or not
+            with open(cmake_file, 'r') as f:
+                if 'catkin_project' in f.read():
+                    catkin = True
 
-    conf = repos[stack]
+            #If it is catkin, then we'll do our best to put the right things on the python path
+            #TODO: Note that this will not generate messages, we can try to put this in later
+            #but fuerte catkin makes it kind of hard to do correctly
+            if catkin:
+                print "Creating an export line that guesses the appropriate python paths for each package"
+                print "WARNING: This will not properly generate message files within this repo for python documentation."
+                if os.path.isdir(os.path.join(path, 'src')):
+                    path_string = "%s:%s" %(os.path.join(path, 'src'), path_string)
+
+            #If it's not catkin, then we'll generate python messages
+            else:
+                old_dir = os.getcwd()
+                os.chdir(path)
+                os.makedirs('build')
+                os.chdir('build')
+                print "Calling cmake.."
+                ros_env['ROS_PACKAGE_PATH'] = '%s:%s' % (path, ros_env['ROS_PACKAGE_PATH'])
+                call("cmake ..", ros_env)
+                generate_messages_dry(ros_env, name)
+                os.chdir(old_dir)
+
+    return "export PYTHONPATH=%s:$PYTHONPATH" % path_string
+
+def build_repo_messages(docspace, ros_distro):
+    #For groovy, this isn't too bad, we just set up a workspace
+    old_dir = os.getcwd()
+    repo_buildspace = os.path.join(docspace, 'build_repo')
+    os.makedirs(repo_buildspace)
+    os.chdir(repo_buildspace)
+    print "Removing the CMakeLists.txt file generated by rosinstall"
+    os.remove(os.path.join(docspace, 'CMakeLists.txt'))
+    ros_env = get_ros_env('/opt/ros/%s/setup.bash' %ros_distro)
+    print "Calling cmake..."
+    call("catkin_init_workspace %s"%docspace, ros_env)
+    call("cmake ..", ros_env)
+    ros_env = get_ros_env(os.path.join(repo_buildspace, 'buildspace/setup.bash'))
+    generate_messages_catkin(ros_env)
+    os.chdir(old_dir)
+    source = 'source %s' % (os.path.abspath(os.path.join(repo_buildspace, 'buildspace/setup.bash')))
+    return source
+
+def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
+    append_pymodules_if_needed()
+    print "Working on distro %s and repo %s" % (ros_distro, repo)
+    try:
+        repo_url = 'https://raw.github.com/eitanme/rosdistro/master/doc/%s/%s.rosinstall'%(ros_distro, repo)
+        f = urllib2.urlopen(repo_url)
+        if f.code != 200:
+            raise BuildException("Could not find a valid rosinstall file for %s at %s" % (repo, repo_url))
+        conf = yaml.load(f.read())
+    except (urllib2.URLError, urllib2.HTTPError) as e:
+        raise BuildException("Could not find a valid rosinstall file for %s at %s" % (repo, repo_url))
 
     #TODO: Change this or parameterize or whatever
     homepage = 'http://ros.org/rosdoclite'
 
     #Select the appropriate rosinstall file
-    rosinstall = yaml.dump(conf['rosinstall'], default_style=False)
+    rosinstall = yaml.dump(conf, default_style=False)
 
-    print "Rosinstall for stack %s:\n%s"%(stack, rosinstall)
-    with open(workspace+"/stack.rosinstall", 'w') as f:
+    print "Rosinstall for repo %s:\n%s"%(repo, rosinstall)
+    with open(workspace+"/repo.rosinstall", 'w') as f:
         f.write(rosinstall)
-    print "Created rosinstall file for stack %s, installing stack..."%stack
+    print "Created rosinstall file for repo %s, installing repo..."%repo
     #TODO Figure out why rosinstall insists on having ROS available when called with nobuild, but not catkin
-    call("rosinstall %s %s/stack.rosinstall --nobuild --catkin" % (docspace, workspace))
+    call("rosinstall %s %s/repo.rosinstall --nobuild --catkin" % (docspace, workspace))
 
-    stack_path = os.path.abspath("%s/%s" % (docspace, stack))
-    print "Stack path %s" % stack_path
-    package_paths = get_stack_package_paths(stack_path)
-    packages = [os.path.basename(p) for p in package_paths]
-    print "Running documentation generation on\npackages: %s\npaths: %s" % (packages, package_paths)
+    repo_path = os.path.abspath("%s" % (docspace))
+    print "Repo path %s" % repo_path
 
-    #Check whether we're using a catkin stack or not
-    catkin_stack = is_catkin_stack(stack, ros_distro)
+    stacks = {}
+    manifest_packages = {}
+    catkin_packages = {}
+    repo_map = {}
 
-    apt_deps = []
-    ros_dep = RosDepResolver(ros_distro)
+    local_info = []
+    for install_item in conf:
+        key = install_item.keys()[0]
+        local_info.append({'type': key, 'name': install_item[key]['local-name'], 'url': install_item[key]['uri']})
+
+    #Get any stacks, manifest packages, or catkin packages (package.xml) in each repo
+    for item in local_info:
+        local_name = item['name']
+        local_path = os.path.join(repo_path, local_name)
+        print "Looking for the following packages in %s" % local_path
+        local_stacks = get_repo_manifests(local_path, manifest='stack')
+        local_manifest_packages = get_repo_manifests(local_path, manifest='package')
+        local_catkin_packages = get_repo_packages(local_path)
+
+        #Since rospkg is kind of screwed up and always finds package.xml files, we
+        #need to filter out packages that are catkin_packages but still listed in
+        #manifest or stack packages
+        for name in local_catkin_packages.iterkeys():
+            if name in local_stacks:
+                del local_stacks[name]
+            if name in local_manifest_packages:
+                del local_manifest_packages[name]
+
+        #Now, we need to update our repo map
+        for name in local_stacks.keys() + local_manifest_packages.keys() + local_catkin_packages.keys():
+            repo_map[name] = item
+
+        #Finally, we'll merge these dictionaries into our global dicts
+        stacks.update(local_stacks)
+        manifest_packages.update(local_manifest_packages)
+        catkin_packages.update(local_catkin_packages)
+
+    print "Running documentation generation on\npackages: %s" % (manifest_packages.keys() + catkin_packages.keys())
+
+    print "Catkin packages: %s" % catkin_packages
+    print "Manifest packages: %s" % manifest_packages
+    print "Stacks: %s" % stacks
 
     #Load information about existing tags
     tags_db = TagsDb(ros_distro, workspace)
 
-    if catkin_stack and ros_distro == 'groovy':
-        #Get the dependencies of any catkin packages in the repo
-        deps = get_dependencies(stack_path)
-        for dep in deps:
-            if dep not in packages:
-                if ros_dep.has_ros(dep):
-                    apt_deps.append(ros_dep.to_apt(dep))
-                else:
-                    print "WARNING: The following dep cannot be resolved: %s... skipping." % dep
-    else:
+    #Get any non local dependencies and install them
+    apt_deps = []
+    ros_dep = RosDepResolver(ros_distro)
+    apt = AptDepends(platform, arch)
+    deps = get_nonlocal_dependencies(catkin_packages, stacks)
+    print "Dependencies: %s" % deps
+    for dep in deps:
+        if ros_dep.has_ros(dep):
+            apt_dep = ros_dep.to_apt(dep)
+            apt_deps.append(apt_dep)
+        else:
+            apt_dep = "ros-%s-%s" % (ros_distro, dep.replace('_', '-'))
+            if apt.has_package(apt_dep):
+                apt_deps.append(apt_dep)
+            else:
+                print "WARNING, could not find dependency %s, not adding to list" % dep
+
+
+    print "Apt dependencies: %s" % apt_deps
+
+    #Build a local dependency graph to be used for build order
+    local_dep_graph = build_local_dependency_graph(catkin_packages, manifest_packages)
+
+    #Write stack manifest files for all stacks, we can just do this off the
+    #stack.xml files
+    for stack, path in stacks.iteritems():
         import rospkg
         #Get the dependencies of a dry stack from the stack.xml
-        stack_manifest = rospkg.parse_manifest_file(stack_path, rospkg.STACK_FILE)
+        stack_manifest = rospkg.parse_manifest_file(path, rospkg.STACK_FILE)
+        stack_packages = get_repo_manifests(path, manifest='package')
         deps = [d.name for d in stack_manifest.depends]
         stack_relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, stack)
         stack_doc_path = os.path.abspath(stack_relative_doc_path)
-        write_stack_manifest(stack_doc_path, stack, stack_manifest, conf['vcs_type'], conf['vcs_url'], "%s/%s/api/%s/html" %(homepage, ros_distro, stack), packages, tags_db)
-        for dep in deps:
-            if dep not in packages:
-                if ros_dep.has_ros(dep):
-                    apt_dep = ros_dep.to_apt(dep)
-                else:
-                    apt_dep = "ros-%s-%s" % (ros_distro, dep.replace('_', '-'))
-                apt_deps.append(apt_dep)
+        write_stack_manifest(stack_doc_path, stack, stack_manifest, repo_map[stack]['type'], repo_map[stack]['url'], "%s/%s/api/%s/html" %(homepage, ros_distro, stack), stack_packages, tags_db)
 
-
-    #Get the apt name of the current stack
-    if ros_dep.has_ros(stack):
-        deb_name = ros_dep.to_apt(stack)
-    else:
-        deb_name = "ros-%s-%s" % (ros_distro, stack.replace('_', '-'))
+    #Need to make sure to re-order packages to be run in dependency order
+    build_order = get_dependency_build_order(local_dep_graph)
+    print "Build order that honors deps:\n%s" % build_order
 
     #We'll need the full list of apt_deps to get tag files
-    apt = AptDepends(platform, arch)
     full_apt_deps = copy.deepcopy(apt_deps)
     for dep in apt_deps:
         print "Getting dependencies for %s" % dep
@@ -269,62 +376,34 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     #Make sure that we don't have any duplicates
     full_apt_deps = list(set(full_apt_deps))
 
-    #We also want to include tag files from our own deb
-    full_apt_deps.append(deb_name)
-
-    print "Installing all dependencies for %s" % stack
+    print "Installing all dependencies for %s" % repo
     if apt_deps:
         call("apt-get install %s --yes" % (' '.join(apt_deps)))
     print "Done installing dependencies"
 
-    #Before we run documentation, we need to set up python paths correctly
-    #This is, of course, different on fuerte and groovy and only needs to be
-    #done for catkinized stacks because ROS_PACKAGE_PATH takes care of things for
-    #dry stacks
+    #Set up the list of things that need to be sourced to run rosdoc_lite
     sources = ['source /opt/ros/%s/setup.bash' % ros_distro]
-    if catkin_stack:
-        if ros_distro == 'groovy':
-            old_dir = os.getcwd()
-            stackbuildspace = os.path.join(docspace, 'build_stack')
-            os.makedirs(stackbuildspace)
-            os.chdir(stackbuildspace)
-            print "Removing the CMakeLists.txt file generated by rosinstall"
-            os.remove(os.path.join(docspace, 'CMakeLists.txt'))
-            ros_env = get_ros_env('/opt/ros/%s/setup.bash' %ros_distro)
-            print "Calling cmake..."
-            call("catkin_init_workspace %s"%docspace, ros_env)
-            call("cmake ..", ros_env)
-            ros_env = get_ros_env(os.path.join(stackbuildspace, 'buildspace/setup.bash'))
-            generate_messages_catkin(ros_env)
-            os.chdir(old_dir)
-            sources.append('source %s' % (os.path.abspath(os.path.join(stackbuildspace, 'buildspace/setup.bash'))))
-        else:
-            print "Creating an export line that guesses the appropriate python paths for each package"
-            print "WARNING: This will not properly generate message files within this repo for python documentation."
-            path_string = os.pathsep.join([os.path.join(p, 'src') \
-                                           for name, p in zip(packages, package_paths) \
-                                           if os.path.isdir(os.path.join(p, 'src'))])
-            sources.append("export PYTHONPATH=%s:$PYTHONPATH" % path_string)
-    else:
-        old_dir = os.getcwd()
-        for name, path in zip(packages, package_paths):
-            #Make sure to check that a CMake file exists before attempting to
-            #do message generation
-            if os.path.isfile(os.path.join(path, 'CMakeLists.txt')):
-                os.chdir(path)
-                os.makedirs('build')
-                os.chdir('build')
-                print "Calling cmake.."
-                ros_env = get_ros_env('/opt/ros/%s/setup.bash' %ros_distro)
-                ros_env['ROS_PACKAGE_PATH'] = '%s:%s' % (stack_path, ros_env['ROS_PACKAGE_PATH'])
-                call("cmake ..", ros_env)
-                generate_messages_dry(ros_env, name)
-        os.chdir(old_dir)
 
-    stack_tags = []
-    for package, package_path in zip(packages, package_paths):
+    #Everything that is after fuerte supports catkin workspaces, so everything
+    #that has packages with package.xml files
+    if catkin_packages:
+        sources.append(build_repo_messages(docspace, ros_distro))
+
+    #For all our manifest packages (dry or fuerte catkin) we want to build
+    #messages. Note, for fuerte catkin the messages arent' generated, TODO
+    #to come back and fix this if necessary
+    sources.append(build_repo_messages_manifest(manifest_packages, build_order, ros_distro))
+
+    repo_tags = {}
+    for package in build_order:
+        #Pull the package from the correct place
+        if package in catkin_packages:
+            package_path = catkin_packages[package]
+        else:
+            package_path = manifest_packages[package]
+
         #Build a tagfile list from dependencies for use by rosdoc
-        build_tagfile(full_apt_deps, tags_db, 'rosdoc_tags.yaml', package)
+        build_tagfile(full_apt_deps, tags_db, 'rosdoc_tags.yaml', package, build_order, docspace, ros_distro)
 
         relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, package)
         pkg_doc_path = os.path.abspath(relative_doc_path)
@@ -335,7 +414,7 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
         command = ['bash', '-c', '%s \
                    && export ROS_PACKAGE_PATH=%s:$ROS_PACKAGE_PATH \
                    && rosdoc_lite %s -o %s -g %s -t rosdoc_tags.yaml' \
-                   %(' && '.join(sources), stack_path, package_path, pkg_doc_path, tags_path) ]
+                   %(' && '.join(sources), repo_path, package_path, pkg_doc_path, tags_path) ]
         #proc = subprocess.Popen(command, stdout=subprocess.PIPE)
         proc = subprocess.Popen(command)
         proc.communicate()
@@ -346,18 +425,21 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
             package_tags = {'location':'%s/%s'%(homepage, relative_tags_path), 
                                  'docs_url':'../../../api/%s/html'%(package), 
                                  'package':'%s'%package}
-            #TODO Sucks to hard code this, but I need to take different action
-            #based on groovy catkin vs fuerte catkin
-            if ros_distro != 'fuerte' and catkin_stack and ros_dep.has_ros(package):
+
+            #If the package has a deb name, then we'll store the tags for it
+            #alongside that name
+            if ros_dep.has_ros(package):
                 pkg_deb_name = ros_dep.to_apt(package)
                 tags_db.set_tags(pkg_deb_name, [package_tags])
+            #Otherwise, we'll store tags for it alongside it's repo, which we
+            #assume can be made into a deb name
             else:
-                stack_tags.append(package_tags)
+                repo_tags.setdefault(repo_map[package]['name'], []).append(package_tags)
 
         #We also need to add information to each package manifest that we only
         #have availalbe in this script like vcs location and type
         write_distro_specific_manifest(os.path.join(pkg_doc_path, 'manifest.yaml'),
-                                       package, conf['vcs_type'], conf['vcs_url'], "%s/%s/api/%s/html" %(homepage, ros_distro, package),
+                                       package, repo_map[package]['type'], repo_map[package]['url'], "%s/%s/api/%s/html" %(homepage, ros_distro, package),
                                        tags_db)
 
         print "Done"
@@ -368,8 +450,18 @@ def document_stack(workspace, docspace, ros_distro, stack, platform, arch):
     call("rsync -qr %s rosbuild@wgs32:/var/www/www.ros.org/html/rosdoclite" % (doc_path))
 
     #Write the new tags to the database if there are any to write
-    if stack_tags:
-        tags_db.set_tags(deb_name, stack_tags)
+    for name, tags in repo_tags.iteritems():
+        #Get the apt name of the current stack/repo
+        if ros_dep.has_ros(name):
+            deb_name = ros_dep.to_apt(name)
+        else:
+            deb_name = "ros-%s-%s" % (ros_distro, name.replace('_', '-'))
+
+        #We only want to write tags for packages that have a valid deb name
+        #For others, the only way to get cross referencing is to document everything
+        #together with a rosinstall file
+        if apt.has_package(deb_name):
+            tags_db.set_tags(deb_name, tags)
 
     #Make sure to write changes to tag files and deps
     tags_db.commit_db()
@@ -391,7 +483,7 @@ def main():
     stack = arguments[1]
     workspace = 'workspace'
     docspace = 'docspace'
-    document_stack(workspace, docspace, ros_distro, stack, 'precise', 'amd64')
+    document_repo(workspace, docspace, ros_distro, stack, 'precise', 'amd64')
 
 if __name__ == '__main__':
     main()
