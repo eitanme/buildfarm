@@ -235,8 +235,8 @@ def build_repo_messages_manifest(manifest_packages, build_order, ros_distro):
                 os.chdir(path)
                 os.makedirs('build')
                 os.chdir('build')
-                print "Calling cmake.."
                 ros_env['ROS_PACKAGE_PATH'] = '%s:%s' % (path, ros_env['ROS_PACKAGE_PATH'])
+                print "Calling cmake .. on %s, with env path %s" % (name, ros_env)
                 call("cmake ..", ros_env)
                 generate_messages_dry(ros_env, name)
                 os.chdir(old_dir)
@@ -368,7 +368,7 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
         import rospkg
         #Get the dependencies of a dry stack from the stack.xml
         stack_manifest = rospkg.parse_manifest_file(path, rospkg.STACK_FILE)
-        stack_packages = get_repo_manifests(path, manifest='package')
+        stack_packages = get_repo_manifests(path, manifest='package').keys()
         deps = [d.name for d in stack_manifest.depends]
         stack_relative_doc_path = "%s/doc/%s/api/%s" % (docspace, ros_distro, stack)
         stack_doc_path = os.path.abspath(stack_relative_doc_path)
