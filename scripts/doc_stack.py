@@ -192,7 +192,7 @@ def generate_messages_dry(env, name):
         call("make ROSBUILD_genmsg_py", env)
         print "Generated messages for %s" % name
         
-def build_repo_messages_manifest(manifest_packages, build_order, ros_distro):
+def build_repo_messages_manifest(manifest_packages, juild_order, ros_distro):
     #Now, we go through all of our manifest packages and try to generate
     #messages, or add them to the pythonpath if they turn out to be catkin
     ros_env = get_ros_env('/opt/ros/%s/setup.bash' %ros_distro)
@@ -233,6 +233,10 @@ def build_repo_messages_manifest(manifest_packages, build_order, ros_distro):
                 call("cmake ..", ros_env)
                 generate_messages_dry(ros_env, name)
                 os.chdir(old_dir)
+        else:
+            #If the package does not have a CmakeLists.txt file, we still want
+            #to add it to our package path because other packages may depend on it
+            ros_env['ROS_PACKAGE_PATH'] = '%s:%s' % (path, ros_env['ROS_PACKAGE_PATH'])
 
     return "export PYTHONPATH=%s:$PYTHONPATH" % path_string
 
