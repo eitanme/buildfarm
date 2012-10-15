@@ -6,6 +6,7 @@ import urllib
 import yaml
 import subprocess
 import os
+from run_jenkins_now import *
 
 ubuntu_distro = {'fuerte': ['precise'],
                  'groovy': ['precise']}
@@ -36,13 +37,33 @@ def main():
         if ls_file.endswith(".rosinstall"):
             rosinstall_files.append(os.path.splitext(os.path.basename(ls_file))[0])
 
+    # create jenkins instance 
+    with open(os.path.join(environment.get_ros_home(), 'catkin-debs', 'server.yaml')) as f:
+        info = yaml.load(f)
+    jenkins_instance = jenkins.Jenkins('http://jenkins.willowgarage.com:8080/', info['username'], info['password'])
+    print "Created Jenkins instance"
+
+    doc_jobs = []
     for s in rosinstall_files:
         if s.endswith('depends'):
             continue
 
         for u in ubuntu_distro[ros_distro]:
             for a in arch:
-                call("./run_jenkins_now.py %s %s %s eitan@hidof.com doc %s %s"%(u, a, ros_distro+'-'+s, ros_distro, s))
+                job_name = run_jenkins_now(jenkins_instance, u, a, ros_distro+'-'+s, "eitan@hidof.com", "doc", [ros_distro, s], info['username'])
+                print "\n"
+                doc_jobs.append(job_name)
+
+    # delete old jobs
+    remove = []
+    current_jobs = [j['name'] for j in jenkins_instance.get_jobs()]
+    for c in current_jobs:
+        if 'doc-%s'%ros_distro in c and not c in doc_jobs:
+            remove.append(c)
+
+    for r in remove:
+        jenkins_instance.delete_job(r)
+        print "Deleted old job %s"%r
 
 if __name__ == "__main__":
     main()
