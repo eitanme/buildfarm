@@ -50,7 +50,6 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
     # parse the rosdistro file
     print "Parsing rosdistro file for %s"%ros_distro
     distro = RosDistro(ros_distro, initialize_dependencies=test_depends_on)
-
     devel = DevelDistro(ros_distro)
     for repository in repositories:
         print "Checking if repo %s exists in distr or devel file"%repository
@@ -62,8 +61,8 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
     # Create rosdep object
     print "Create rosdep object"
     rosdep = RosDepResolver(ros_distro)
-    repositories_apt = [rosdep.to_apt(s) for s in repositories]
-    distro_apt = [rosdep.to_apt(s) for s in distro.packages]
+    repositories_apt = rosdep.to_aptlist(repositories)
+    distro_apt = rosdep.to_aptlist(distro.packages)
 
     # download the repositories from source
     print "Downloading all repositories"
@@ -86,7 +85,7 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
     build_dependencies = get_dependencies(sourcespace, build_depends=True, test_depends=False)
     if len(build_dependencies) > 0:
         print "Install all build dependencies of repositories: %s"%(', '.join(build_dependencies))
-        call("apt-get install %s --yes"%(' '.join([rosdep.to_apt(r) for r in build_dependencies])))
+        call("apt-get install %s --yes"%(' '.join(rosdep.to_aptlist(build_dependencies))))
     else:
         print "Repositories have no build dependencies"
 
@@ -110,7 +109,7 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
     test_dependencies = get_dependencies(sourcespace, build_depends=False, test_depends=True)
     if len(test_dependencies) > 0:
         print "Install all test dependencies of repositories: %s"%(', '.join(test_dependencies))
-        call("apt-get install %s --yes"%(' '.join([rosdep.to_apt(r) for r in test_dependencies])))
+        call("apt-get install %s --yes"%(' '.join(rosdep.to_aptlist(test_dependencies))))
     else:
         print "Repositories have no test dependencies"
 
@@ -152,13 +151,13 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
 
     # install all repository and system dependencies of the depends_on list
     print "Install all dependencies of the depends_on list"
-    dep_apt = []
+    dep = []
     for d in get_dependencies(sourcespace):
-        if not d in depends_on and not d in repositories:
-            dep_apt.append(rosdep.to_apt(d))
-    print "Dependencies of depends_on list are %s"%(', '.join(dep_apt))
-    if len(dep_apt) > 0:
-        call("apt-get install --yes %s"%(' '.join(dep_apt)))
+        if not d in dep and not d in depends_on and not d in repositories:
+            dep.append(d)
+    print "Dependencies of depends_on list are %s"%(', '.join(dep))
+    if len(dep) > 0:
+        call("apt-get install --yes %s"%(' '.join(rosdep.to_aptlist(dep))))
 
 
     # replace the CMakeLists.txt file again

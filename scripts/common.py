@@ -228,17 +228,31 @@ class RosDepResolver:
         raw_db = call("rosdep db", self.env).split('\n')
 
         for entry in raw_db:
-            split_entry = entry.split()
-            if len(split_entry) != 3 or split_entry[1] != '->':
+            split_entry = entry.split(' -> ')
+            if len(split_entry) < 2:
                 continue
-            ros_entry, arrow, apt_entry = split_entry
-            self.r2a[ros_entry] = apt_entry
-            self.a2r[apt_entry] = ros_entry
+            ros_entry = split_entry[0]
+            apt_entries = split_entry[1].split(' ')
+            self.r2a[ros_entry] = apt_entries
+            for a in apt_entries:
+                self.a2r[a] = ros_entry
+
+    def to_aptlist(self, ros_entries):
+        res = []
+        for r in ros_entries:
+            for a in self.to_apt(r):
+                if not a in res:
+                    res.append(a)
+        return res
 
     def to_ros(self, apt_entry):
+        if not apt_entry in self.a2r.keys():
+            print "Could not find %s in keys. Have keys %s"%(apt_entry, ', '.join(self.a2r.keys()))
         return self.a2r[apt_entry]
 
     def to_apt(self, ros_entry):
+        if not ros_entry in self.r2a.keys():
+            print "Could not find %s in keys. Have keys %s"%(ros_entry, ', '.join(self.r2a.keys()))
         return self.r2a[ros_entry]
 
     def has_ros(self, ros_entry):
