@@ -18,6 +18,13 @@ def append_pymodules_if_needed():
 
 
 
+def apt_get_install(pkgs, rosdep):
+    if len(pkgs) > 0:
+        call("apt-get install --yes %s"%(' '.join(rosdep.to_aptlist(pkgs))))
+    else:
+        print "Not installing anything from apt right now."
+
+
 
 ## {{{ http://code.activestate.com/recipes/577187/ (r9)
 class Worker(Thread):
@@ -100,11 +107,65 @@ class RosDistro:
                 
         # wait for all packages to be initialized
         if initialize_dependencies:
+            # package depends1
             for name, pkg in self.packages.iteritems():
                 while not pkg.initialized:
                     time.sleep(0.1)
             print "All package dependencies initialized"
                 
+            # package depends_on1
+            for dep_type in ['build', 'test']:
+                for pkg in self.packages.keys():
+                    for d in self.packages[pkg].depends1[dep_type]:
+                        if d in self.packages:
+                            self.packages[d].depends_on1[dep_type].append(pkg)
+
+
+
+    def depends1(self, package, dep_type):
+        if type(package) == list:
+            res = []
+            for p in package:
+                res.append(self.depends1(p, dep_type))
+            return res
+        else:
+            return self.packages[package].depends1[dep_type]
+
+
+
+    def depends(self, package, dep_type, res=[]):
+        if type(package) == list:
+            for p in package:
+                self.depends(p, dep_type, res)
+        else:
+            for d in self.depends1(package, dep_type):
+                if d in self.packages and not d in res:
+                    res.append(d)
+                    self.depends(d, dep_type, res)
+        return res
+
+
+    def depends_on1(self, package, dep_type):
+        if type(package) == list:
+            res = []
+            for p in package:
+                res.append(self.depends_on1(p, dep_type))
+            return res
+        else:
+            return self.packages[package].depends_on1[dep_type]
+
+
+    def depends_on(self, package, dep_type, res=[]):
+        if type(package) == list:
+            for p in package:
+                self.depends_on(p, dep_type, res)
+        else:
+            for d in self.depends_on1(package, dep_type):        
+                if d in self.packages and not d in res:
+                    res.append(d)
+                    self.depends_on(d, dep_type, res)
+        return res
+            
                     
         
 
@@ -136,23 +197,31 @@ class RosDistroPackage:
         self.name = name
         self.url = url
         self.version = version.split('-')[0]
-        
+        self.depends1 = {}
+        self.depends_on1 = {}
+
     def initialize_dependencies(self):
         with self.lock:
             http = self.url
             http = http.replace('.git', '/release')
             http = http.replace('git://', 'http://raw.')
             url = '%s/%s/%s/package.xml'%(http, self.name, self.version)
-            package_xml = urllib.urlopen(url).read()
-            append_pymodules_if_needed()
-            from catkin_pkg import package
-            try:
-                pkg = package.parse_package_string(package_xml)
-            except package.InvalidPackage as e:
-                print "!!!!!! Invalid package.xml for package %s at url %s"%(self.name, url)
-                raise BuildException("Invalid package.xml")
-            self.build_depends_on1 = [d.name for d in pkg.build_depends]
-            self.test_depends_on1 = [d.name for d in pkg.test_depends]
+            success = False
+            while not success:
+                package_xml = urllib.urlopen(url).read()
+                append_pymodules_if_needed()
+                from catkin_pkg import package
+                try:
+                    pkg = package.parse_package_string(package_xml)
+                    success = True
+                except package.InvalidPackage as e:
+                    print "!!!!!! Invalid package.xml for package %s at url %s"%(self.name, url)
+                    time.sleep(5.0)
+
+            self.depends1['build'] = [d.name for d in pkg.build_depends]
+            self.depends1['test'] = [d.name for d in pkg.test_depends]
+            self.depends_on1['build'] = []
+            self.depends_on1['test'] = []
             self.initialized = True
 
     def get_rosinstall_release(self, version=None):
