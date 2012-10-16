@@ -5,6 +5,7 @@ import sys
 import fnmatch
 import yaml
 import threading
+import time
 import datetime
 from Queue import Queue
 from threading import Thread
@@ -96,7 +97,18 @@ class RosDistro:
                     pkgs.append(pkg)
                     self.packages[pkg_name] = pkg
                 self.repositories[repo_name] = RosDistroRepo(repo_name, pkgs)
+                
+        # wait for all packages to be initialized
+        if initialize_dependencies:
+            for name, pkg in self.packages.iteritems():
+                while not pkg.initialized:
+                    time.sleep(0.1)
+            print "All package dependencies initialized"
+                
                     
+        
+
+
 
 class RosDistroRepo:
     def __init__(self, name, pkgs):

@@ -50,7 +50,6 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
     # parse the rosdistro file
     print "Parsing rosdistro file for %s"%ros_distro
     distro = RosDistro(ros_distro, initialize_dependencies=test_depends_on)
-    sleep(1000000)
 
     devel = DevelDistro(ros_distro)
     for repository in repositories:
