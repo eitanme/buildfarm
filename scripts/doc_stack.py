@@ -348,7 +348,7 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
     for dep in deps:
         if ros_dep.has_ros(dep):
             apt_dep = ros_dep.to_apt(dep)
-            apt_deps.append(apt_dep)
+            apt_deps.extend(apt_dep)
         else:
             apt_dep = "ros-%s-%s" % (ros_distro, dep.replace('_', '-'))
             if apt.has_package(apt_dep):
@@ -440,7 +440,7 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
             #If the package has a deb name, then we'll store the tags for it
             #alongside that name
             if ros_dep.has_ros(package):
-                pkg_deb_name = ros_dep.to_apt(package)
+                pkg_deb_name = ros_dep.to_apt(package)[0]
                 tags_db.set_tags(pkg_deb_name, [package_tags])
             #Otherwise, we'll store tags for it alongside it's repo, which we
             #assume can be made into a deb name
@@ -466,7 +466,7 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
     for name, tags in repo_tags.iteritems():
         #Get the apt name of the current stack/repo
         if ros_dep.has_ros(name):
-            deb_name = ros_dep.to_apt(name)
+            deb_name = ros_dep.to_apt(name)[0]
         else:
             deb_name = "ros-%s-%s" % (ros_distro, name.replace('_', '-'))
 
