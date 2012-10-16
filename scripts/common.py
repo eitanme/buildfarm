@@ -335,7 +335,7 @@ def call_with_list(command, envir=None):
 def call(command, envir=None):
     return call_with_list(command.split(' '))
 
-def get_nonlocal_dependencies(catkin_packages, stacks):
+def get_nonlocal_dependencies(catkin_packages, stacks, manifest_packages):
     append_pymodules_if_needed()
     from catkin_pkg import packages
     import rospkg
@@ -348,14 +348,25 @@ def get_nonlocal_dependencies(catkin_packages, stacks):
                         for d in pkg_info.build_depends + pkg_info.test_depends + pkg_info.run_depends \
                         if not d.name in catkin_packages and not d.name in depends])
 
-    #Next, we build the manifest deps
+    #Next, we build the manifest deps for stacks
     for name, path in stacks.iteritems():
-        manifest = rospkg.parse_manifest_file(path, rospkg.STACK_FILE)
+        stack_manifest = rospkg.parse_manifest_file(path, rospkg.STACK_FILE)
         depends.extend([d.name \
-                        for d in manifest.depends + manifest.rosdeps \
+                        for d in stack_manifest.depends + stack_manifest.rosdeps \
                         if not d.name in catkin_packages \
                         and not d.name in stacks \
                         and not d.name in depends])
+
+    #Next, we build manifest deps for packages
+    for name, path in manifest_packages.iteritems():
+        pkg_manifest = rospkg.parse_manifest_file(path, rospkg.MANIFEST_FILE)
+        depends.extend([d.name \
+                        for d in pkg_manifest.depends + pkg_manifest.rosdeps \
+                        if not d.name in catkin_packages \
+                        and not d.name in stacks \
+                        and not d.name in manifest_packages \
+                        and not d.name in depends])
+
 
     return depends
 
@@ -370,7 +381,7 @@ def build_local_dependency_graph(catkin_packages, manifest_packages):
         depends[name] = []
         pkg_info = packages.parse_package(path)
         for d in pkg_info.build_depends + pkg_info.test_depends + pkg_info.run_depends:
-            if d.name in catkin_packages:
+            if d.name in catkin_packages and d.name != name:
                 depends[name].append(d.name)
 
     #Next, we build the manifest dep tree
@@ -378,7 +389,7 @@ def build_local_dependency_graph(catkin_packages, manifest_packages):
         manifest = rospkg.parse_manifest_file(path, rospkg.MANIFEST_FILE)
         depends[name] = []
         for d in manifest.depends + manifest.rosdeps:
-            if d.name in catkin_packages or d.name in manifest_packages:
+            if (d.name in catkin_packages or d.name in manifest_packages) and d.name != name:
                 depends[name].append(str(d.name))
 
     return depends
