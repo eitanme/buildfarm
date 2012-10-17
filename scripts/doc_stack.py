@@ -265,6 +265,13 @@ def build_repo_messages(docspace, ros_distro):
     source = 'source %s' % (os.path.abspath(os.path.join(repo_buildspace, 'buildspace/setup.bash')))
     return source
 
+def get_repositories_from_rosinstall(rosinstall):
+    repos = []
+    for item in rosinstall:
+        key = item.keys()[0]
+        repos.append(item[key]['local-name'])
+    return repos
+
 def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
     append_pymodules_if_needed()
     print "Working on distro %s and repo %s" % (ros_distro, repo)
@@ -277,11 +284,25 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
     except (urllib2.URLError, urllib2.HTTPError) as e:
         raise BuildException("Could not find a valid rosinstall file for %s at %s" % (repo, repo_url))
 
+    depends_conf = []
+    try:
+        depends_repo_url = 'https://raw.github.com/eitanme/rosdistro/master/doc/%s/%s_depends.rosinstall'%(ros_distro, repo)
+        f = urllib2.urlopen(depends_repo_url)
+        if f.code == 200:
+            print "Found a depends rosinstall file for %s" % repo
+            depends_conf = yaml.load(f.read())
+    except (urllib2.URLError, urllib2.HTTPError) as e:
+        print "Did not find a depends rosinstall file for %s" % repo
+
+    #Get the list of repositories that should have documentation run on them
+    #These are all of the repos that are not in the depends rosinsall file
+    repos_to_doc = get_repositories_from_rosinstall(conf)
+
     #TODO: Change this or parameterize or whatever
     homepage = 'http://ros.org/rosdoclite'
 
     #Select the appropriate rosinstall file
-    rosinstall = yaml.dump(conf, default_style=False)
+    rosinstall = yaml.dump(conf + depends_conf, default_style=False)
 
     print "Rosinstall for repo %s:\n%s"%(repo, rosinstall)
     with open(workspace+"/repo.rosinstall", 'w') as f:
@@ -299,7 +320,7 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
     repo_map = {}
 
     local_info = []
-    for install_item in conf:
+    for install_item in conf + depends_conf:
         key = install_item.keys()[0]
         local_info.append({'type': key, 'name': install_item[key]['local-name'], 'url': install_item[key]['uri']})
 
@@ -407,6 +428,11 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
 
     repo_tags = {}
     for package in build_order:
+        #don't document packages that we're supposed to build but not supposed to document
+        if not repo_map[package]['name'] in repos_to_doc:
+            print "Package: %s, in repo: %s, is not supposed to be documented. Skipping." % (package, repo_map[package]['name'])
+            continue
+
         #Pull the package from the correct place
         if package in catkin_packages:
             package_path = catkin_packages[package]
