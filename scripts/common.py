@@ -67,6 +67,8 @@ class DevelDistro:
             repo = DevelDistroRepo(name, data)
             self.repositories[name] = repo
 
+
+
 class DevelDistroRepo:
     def __init__(self, name, data):
         self.name = name
@@ -86,40 +88,56 @@ class DevelDistroRepo:
 
 
 class RosDistro:
-    def __init__(self, name, initialize_dependencies=False):
+    def __init__(self, name, prefetch_dependencies=False, prefetch_upstream=False):
         url = urllib.urlopen('https://raw.github.com/ros/rosdistro/master/releases/%s.yaml'%name)
         distro = yaml.load(url.read())['repositories']
         self.repositories = {}
         self.packages = {}
-        self.threadpool = ThreadPool(5)
         for repo_name, data in distro.iteritems():
             if 'packages' in data.keys():
-                pkgs = []
+                distro_pkgs = []
                 url = data['url']
                 version = data['version']
                 for pkg_name in data['packages'].keys():
                     pkg = RosDistroPackage(pkg_name, url, version)
-                    if initialize_dependencies:
-                        self.threadpool.add_task(pkg.initialize_dependencies)
-                    pkgs.append(pkg)
+                    distro_pkgs.append(pkg)
                     self.packages[pkg_name] = pkg
-                self.repositories[repo_name] = RosDistroRepo(repo_name, pkgs)
-                
-        # wait for all packages to be initialized
-        if initialize_dependencies:
-            # package depends1
-            for name, pkg in self.packages.iteritems():
-                while not pkg.initialized:
-                    time.sleep(0.1)
-            print "All package dependencies initialized"
-                
-            # package depends_on1
-            for dep_type in ['build', 'test']:
-                for pkg in self.packages.keys():
-                    for d in self.packages[pkg].depends1[dep_type]:
-                        if d in self.packages:
-                            self.packages[d].depends_on1[dep_type].append(pkg)
+                self.repositories[repo_name] = RosDistroRepo(repo_name, url, version, distro_pkgs)
 
+        # prefetch package dependencies
+        if prefetch_dependencies:
+            self.prefetch_package_dependencies()
+
+        # prefetch distro upstream
+        if prefetch_upstream:
+            self.prefetch_repository_upstream()
+
+                
+
+    def prefetch_package_dependencies(self):
+        threadpool = ThreadPool(5)
+            
+        # add jobs to queue
+        for name, pkg in self.packages.iteritems():
+            threadpool.add_task(pkg.get_dependencies)
+                
+        # wait for queue to be finished
+        for name, pkg in self.packages.iteritems():
+            while not pkg.depends1:
+                time.sleep(0.1)
+
+
+    def prefetch_repository_upstream(self):
+        threadpool = ThreadPool(5)
+
+        # add jobs to queue
+        for name, repo in self.repositories.iteritems():
+            threadpool.add_task(repo.get_upstream)
+                
+        # wait for queue to be finished
+        for name, repo in self.repositories.iteritems():
+            while not repo.upstream:
+                time.sleep(0.1)
 
 
     def depends1(self, package, dep_type):
@@ -129,7 +147,9 @@ class RosDistro:
                 res.append(self.depends1(p, dep_type))
             return res
         else:
-            return self.packages[package].depends1[dep_type]
+            d = self.packages[package].get_dependencies()[dep_type]
+            print "%s depends on %s"%(package, str(d))
+            return d
 
 
 
@@ -152,7 +172,11 @@ class RosDistro:
                 res.append(self.depends_on1(p, dep_type))
             return res
         else:
-            return self.packages[package].depends_on1[dep_type]
+            depends_on1 = []
+            for name, pkg in self.packages.iteritems():
+                if package in pkg.get_dependencies()[dep_type]:
+                    depends_on1.append(name)
+            return depends_on1
 
 
     def depends_on(self, package, dep_type, res=[]):
@@ -172,9 +196,12 @@ class RosDistro:
 
 
 class RosDistroRepo:
-    def __init__(self, name, pkgs):
+    def __init__(self, name, url, version, pkgs):
         self.name = name
+        self.url = url
+        self.version = version.split('-')[0]
         self.pkgs = pkgs
+        self.upstream = None
     
     def get_rosinstall_release(self, version=None):
         rosinstall = ""
@@ -188,41 +215,59 @@ class RosDistroRepo:
             rosinstall += p.get_rosinstall_latest()
         return rosinstall
 
+    def get_upstream(self):
+        if not self.upstream:
+            url = self.url
+            url = url.replace('.git', '/bloom/bloom.conf')
+            url = url.replace('git://', 'https://raw.')
+            retries = 5
+            while not self.upstream and retries > 0:
+                res = {'version': ''}
+                repo_conf = urllib.urlopen(url).read()
+                for r in repo_conf.split('\n'):
+                    conf = r.split(' = ')
+                    if conf[0] == '\tupstream':
+                        res['url'] = conf[1]
+                    if conf[0] == '\tupstreamtype':
+                        res['type'] = conf[1]
+                    if conf[0] == '\tupstreamversion':
+                        res['version'] = conf[1]
+                self.upstream = res
+        return self.upstream
 
 
 class RosDistroPackage:
-    def __init__(self, name, url, version, initialize_dependencies=False):
-        self.lock = threading.Lock()
-        self.initialized = False
+    def __init__(self, name, url, version):
         self.name = name
         self.url = url
         self.version = version.split('-')[0]
-        self.depends1 = {}
-        self.depends_on1 = {}
+        self.depends1 = None
 
-    def initialize_dependencies(self):
-        with self.lock:
-            http = self.url
-            http = http.replace('.git', '/release')
-            http = http.replace('git://', 'http://raw.')
-            url = '%s/%s/%s/package.xml'%(http, self.name, self.version)
-            success = False
-            while not success:
+    def get_dependencies(self):
+        if not self.depends1:
+            url = self.url
+            url = url.replace('.git', '/release/%s/%s/package.xml'%(self.name, self.version))
+            url = url.replace('git://', 'https://raw.')
+            print url
+            retries = 5
+            while not self.depends1 and retries > 0:
                 package_xml = urllib.urlopen(url).read()
                 append_pymodules_if_needed()
                 from catkin_pkg import package
                 try:
                     pkg = package.parse_package_string(package_xml)
-                    success = True
                 except package.InvalidPackage as e:
-                    print "!!!!!! Invalid package.xml for package %s at url %s"%(self.name, url)
+                    print "!!!! Failed to download package.xml for package %s at url %s"%(self.name, url)
                     time.sleep(5.0)
 
-            self.depends1['build'] = [d.name for d in pkg.build_depends]
-            self.depends1['test'] = [d.name for d in pkg.test_depends]
-            self.depends_on1['build'] = []
-            self.depends_on1['test'] = []
-            self.initialized = True
+                res = {}
+                res['build'] = [d.name for d in pkg.build_depends]
+                res['test'] = [d.name for d in pkg.test_depends]
+                self.depends1 = res
+
+        return self.depends1
+
+
 
     def get_rosinstall_release(self, version=None):
         if not version:
@@ -388,20 +433,21 @@ def copy_test_results(workspace, buildspace):
 
 
 def get_ros_env(setup_file):
-    ros_env = os.environ
+    res = os.environ
     print "Retrieve the ROS build environment by sourcing %s"%setup_file
     command = ['bash', '-c', 'source %s && env'%setup_file]
     proc = subprocess.Popen(command, stdout = subprocess.PIPE)
     for line in proc.stdout:
         (key, _, value) = line.partition("=")
-        ros_env[key] = value.split('\n')[0]
+        res[key] = value.split('\n')[0]
     proc.communicate()
     if proc.returncode != 0:
         msg = "Failed to source %s"%setup_file
         print "/!\  %s"%msg
         raise BuildException(msg)
-    print "ROS environment: %s"%str(ros_env)
-    return ros_env
+    print "ROS environment: %s"%str(res)
+    return res
+
 
 def call_with_list(command, envir=None):
     print "Executing command '%s'"%' '.join(command)

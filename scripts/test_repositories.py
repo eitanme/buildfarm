@@ -29,7 +29,7 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
 
 
     # set directories
-    tmpdir = os.path.join(workspace, 'tmp', 'test_repositories', get_timestamp())
+    tmpdir = os.path.join('tmp', 'test_repositories', get_timestamp())
     sourcespace = os.path.join(tmpdir, 'src')
     repositorybuildspace = os.path.join(tmpdir, 'build_repository')
     dependbuildspace = os.path.join(tmpdir, 'build_depend_on')
@@ -44,12 +44,12 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
     call("apt-get update")
 
     # install stuff we need
-    print "Installing stuff we need to testing"
+    print "Installing stuff we need for testing"
     call("apt-get install mercurial subversion python-catkin-pkg python-support cmake --yes")
 
     # parse the rosdistro file
     print "Parsing rosdistro file for %s"%ros_distro
-    distro = RosDistro(ros_distro, initialize_dependencies=test_depends_on)
+    distro = RosDistro(ros_distro, prefetch_dependencies=test_depends_on, prefetch_upstream=False)
     devel = DevelDistro(ros_distro)
     for repository in repositories:
         print "Checking if repo %s exists in distr or devel file"%repository
@@ -92,8 +92,9 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
     print "Create a new CMakeLists.txt file using catkin"
     ros_env = get_ros_env('/opt/ros/%s/setup.bash'%ros_distro)
     call("catkin_init_workspace %s"%sourcespace, ros_env)
+    print ros_env
     call("cmake ../src/", ros_env)        
-    ros_env = get_ros_env(os.path.join(repositorybuildspace, 'buildspace/setup.bash'))
+    ros_env_repo = get_ros_env(os.path.join(repositorybuildspace, 'buildspace/setup.bash'))
 
     # build repositories
     print "Build repositories"
@@ -164,8 +165,10 @@ def test_repositories(ros_distro, repositories, workspace, use_devel_repo, test_
     os.chdir(dependbuildspace)
     print "Create a new CMakeLists.txt file using catkin"
     call("catkin_init_workspace %s"%sourcespace, ros_env)
+    call("ls -l /opt/ros/groovy/share/genmsg/manifest.xml")
+    print ros_env
     call("cmake ../src/", ros_env)        
-    ros_env = get_ros_env(os.path.join(dependbuildspace, 'buildspace/setup.bash'))
+    ros_env_depends_on = get_ros_env(os.path.join(dependbuildspace, 'buildspace/setup.bash'))
 
     # build repositories
     print "Build depends-on repositories"
