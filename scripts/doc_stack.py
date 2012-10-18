@@ -280,7 +280,7 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
     append_pymodules_if_needed()
     print "Working on distro %s and repo %s" % (ros_distro, repo)
     try:
-        repo_url = 'https://raw.github.com/eitanme/rosdistro/master/doc/%s/%s.rosinstall'%(ros_distro, repo)
+        repo_url = 'https://raw.github.com/ros/rosdistro/master/doc/%s/%s.rosinstall'%(ros_distro, repo)
         f = urllib2.urlopen(repo_url)
         if f.code != 200:
             raise BuildException("Could not find a valid rosinstall file for %s at %s" % (repo, repo_url))
@@ -290,7 +290,7 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
 
     depends_conf = []
     try:
-        depends_repo_url = 'https://raw.github.com/eitanme/rosdistro/master/doc/%s/%s_depends.rosinstall'%(ros_distro, repo)
+        depends_repo_url = 'https://raw.github.com/ros/rosdistro/master/doc/%s/%s_depends.rosinstall'%(ros_distro, repo)
         f = urllib2.urlopen(depends_repo_url)
         if f.code == 200:
             print "Found a depends rosinstall file for %s" % repo

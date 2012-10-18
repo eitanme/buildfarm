@@ -48,7 +48,7 @@ class TagsDb(object):
             shutil.rmtree(self.path)
 
         command = ['bash', '-c', 'export GIT_SSH="%s/buildfarm/scripts/git_ssh" \
-                   && git clone git@github.com:eitanme/rosdoc_tag_index.git %s' \
+                   && git clone git@github.com:ros-infrastructure/rosdoc_tag_index.git %s' \
                    %(workspace, self.path) ]
 
         proc = subprocess.Popen(command)
