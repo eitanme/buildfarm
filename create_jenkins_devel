@@ -46,7 +46,9 @@ def main():
         for u in ubuntu_distro[ros_distro]:
             for a in arch:
                 if conf['type'] == 'svn':
-                    conf['version'] = 'dummy'
+                    conf['version'] = ''
+                if not conf['version']:
+                    conf['version'] = ''
                 print "----"
                 job_name = run_jenkins_vcs(jenkins_instance, u, a, ros_distro+'-'+s, 'wim@hidof.com', 
                                            conf['type'], conf['url'], conf['version'],
