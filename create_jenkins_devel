@@ -5,6 +5,7 @@ import jenkins
 import urllib
 import yaml
 import subprocess
+import optparse
 from rospkg import environment
 from run_jenkins_vcs import *
 
@@ -25,10 +26,14 @@ def call(command, envir=None):
 
 # Schedule all devel jobs on Jenkins
 def main():
-    if len(sys.argv) != 2:
+    parser = optparse.OptionParser()
+    parser.add_option("--delete", action="store_true", default=False)
+    (options, args) = parser.parse_args()
+
+    if len(args) != 1:
         print "Usage: %s ros_distro"%(sys.argv[0])
         sys.exit(0)
-    ros_distro = sys.argv[1]
+    ros_distro = args[0]
     
     # create jenkins instance 
     with open(os.path.join(environment.get_ros_home(), 'catkin-debs', 'server.yaml')) as f:
@@ -57,15 +62,16 @@ def main():
 
 
     # delete old jobs
-    remove = []
-    current_jobs = [j['name'] for j in jenkins_instance.get_jobs()]
-    for c in current_jobs:
-        if 'devel-%s'%ros_distro in c and not c in devel_jobs:
-            remove.append(c)
+    if options.delete:
+        remove = []
+        current_jobs = [j['name'] for j in jenkins_instance.get_jobs()]
+        for c in current_jobs:
+            if 'devel-%s'%ros_distro in c and not c in devel_jobs:
+                remove.append(c)
 
-    for r in remove:
-        jenkins_instance.delete_job(r)
-        print "Deleted old job %s"%r
+        for r in remove:
+            jenkins_instance.delete_job(r)
+            print "Deleted old job %s"%r
 
 
 if __name__ == "__main__":

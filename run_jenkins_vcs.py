@@ -28,7 +28,7 @@ def run_jenkins_vcs(jenkins_instance,
     params['ARCH'] = arch
     params['EMAIL'] = email
     params['TRIGGER'] = jc['triggers']['vcs']
-    params['VCS'] = jc['vcs'][vcs].replace('@(URI)', uri)#.replace('@(BRANCH)', branch)
+    params['VCS'] = jc['vcs'][vcs].replace('@(URI)', uri).replace('@(BRANCH)', branch)
     params['SCRIPT'] = script
     params['NODE'] = params['SCRIPT']
     params['TIME'] = str(datetime.datetime.now())
