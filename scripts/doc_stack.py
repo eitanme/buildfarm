@@ -422,7 +422,7 @@ def document_repo(workspace, docspace, ros_distro, repo, platform, arch):
 
     #Everything that is after fuerte supports catkin workspaces, so everything
     #that has packages with package.xml files
-    if catkin_packages:
+    if catkin_packages and not 'rosdoc_lite' in catkin_packages.keys():
         sources.append(build_repo_messages(docspace, ros_distro))
 
     #For all our manifest packages (dry or fuerte catkin) we want to build
