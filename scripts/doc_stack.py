@@ -249,7 +249,10 @@ def build_repo_messages_manifest(manifest_packages, build_order, ros_distro):
             #to add it to our package path because other packages may depend on it
             ros_env['ROS_PACKAGE_PATH'] = '%s:%s' % (path, ros_env['ROS_PACKAGE_PATH'])
 
-    return "export PYTHONPATH=%s:$PYTHONPATH" % path_string
+    if path_string:
+        return "export PYTHONPATH=%s:$PYTHONPATH" % path_string
+
+    return "export PYTHONPATH=$PYTHONPATH"
 
 def build_repo_messages(docspace, ros_distro):
     #For groovy, this isn't too bad, we just set up a workspace

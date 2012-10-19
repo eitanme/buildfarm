@@ -40,8 +40,8 @@ def install_catkin_sphinx(workspace):
     os.chdir("%s"%checkout_path)
     call("./setup.py install")
     os.chdir(old_dir)
-    #print "Copying themes to %s" % sphinx_path
-    #shutil.copytree(os.path.join(checkout_path, 'theme', 'ros-theme'), os.path.join(sphinx_path, 'ros-theme'))
+    print "Copying themes to %s" % sphinx_path
+    shutil.copytree(os.path.join(checkout_path, 'theme', 'ros-theme'), os.path.join(sphinx_path, 'ros-theme'))
 
 def main():
     print
